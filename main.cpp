@@ -1,27 +1,22 @@
 // Include C++ header files.
 #include <iostream>
+#include <sys/types.h>
 
 // Include local CUDA header files.
 #include "include/cuda_kernel.cuh"
+#include "include/lbm_gpu.cuh"
 
 int main() {
 
-  // Initialize arrays A, B, and C.
-  double A[3], B[3], C[3];
+  LatticeSpace space;
+  space.info.x_size = 3;
+  space.info.y_size = 3;
+  space.info.z_size = 3;
+  space.info.total_size =
+      space.info.x_size * space.info.y_size * space.info.z_size;
 
-  // Populate arrays A and B.
-  A[0] = 1;
-  A[1] = 2;
-  A[2] = 3;
-  B[0] = 1;
-  B[1] = 1;
-  B[2] = 1;
-
-  // Sum array elements across ( C[0] = A[0] + B[0] ) into array C using CUDA.
-  kernel(A, B, C, 3);
-
-  // Print out result.
-  std::cout << "C = " << C[0] << ", " << C[1] << ", " << C[2] << std::endl;
+  lbm_space_init_device(&space);
+  lbm_space_init_kernel(&space);
 
   return 0;
 }

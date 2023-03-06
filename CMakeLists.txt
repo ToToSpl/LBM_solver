@@ -17,6 +17,7 @@ include_directories("${CUDA_INCLUDE_DIRS}")
 
 add_executable(lbm_solver 
   main.cpp
+  src/lbm_gpu.cu
   src/cuda_kernel.cu
   )
 
