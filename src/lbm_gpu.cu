@@ -24,19 +24,25 @@ __global__ void gpu_init_memory(LatticeNode *space, LatticeInfo space_data) {
   u_int32_t z = blockDim.z * blockIdx.z + threadIdx.z;
 
   if (x < space_data.x_size && y < space_data.y_size && z < space_data.z_size) {
-    u_int32_t index = x * space_data.x_size + y * space_data.y_size + z;
+    u_int32_t index = (z * space_data.x_size * space_data.y_size) +
+                      (y * space_data.x_size) + x;
     float pos = (float)index;
-    space[index] = {pos, pos, pos, pos, pos, pos, pos, pos, pos,
-                    pos, pos, pos, pos, pos, pos, pos, pos, pos,
-                    pos, pos, pos, pos, pos, pos, pos, pos, pos};
+    space[index].f[0] = 69.f;
+    /*{pos, pos, pos, pos, pos, pos, pos, pos, pos,
+                  pos, pos, pos, pos, pos, pos, pos, pos, pos,
+                  pos, pos, pos, pos, pos, pos, pos, pos, pos};*/
   }
 }
 
+void cuda_wait_for_device() { gpuErrchk(cudaDeviceSynchronize()); }
+
 void lbm_space_init_device(LatticeSpace *space) {
   space->device_data = malloc(sizeof(cudaPitchedPtr));
-  gpuErrchk(cudaMalloc3D((cudaPitchedPtr *)space->device_data,
-                         {space->info.z_size * sizeof(LatticeNode),
-                          space->info.y_size, space->info.x_size}));
+  cudaExtent volumeSizeBytes =
+      make_cudaExtent(sizeof(LatticeNode) * space->info.x_size,
+                      space->info.y_size, space->info.z_size);
+  gpuErrchk(
+      cudaMalloc3D((cudaPitchedPtr *)space->device_data, volumeSizeBytes));
 }
 
 void lbm_space_init_kernel(LatticeSpace *space) {
@@ -45,4 +51,12 @@ void lbm_space_init_kernel(LatticeSpace *space) {
   gpu_init_memory<<<gridSize, blockSize>>>(
       (LatticeNode *)((cudaPitchedPtr *)space->device_data)->ptr, space->info);
   gpuErrchk(cudaPeekAtLastError());
+}
+
+void lbm_space_copy_host(LatticeNode *raw_data, LatticeSpace *space) {
+  raw_data =
+      (LatticeNode *)malloc(sizeof(LatticeNode) * space->info.total_size);
+  gpuErrchk(cudaMemcpy(raw_data, ((cudaPitchedPtr *)space->device_data)->ptr,
+                       sizeof(LatticeNode) * space->info.total_size,
+                       cudaMemcpyDeviceToHost));
 }
