@@ -22,9 +22,9 @@ int main() {
   LatticeNode *raw_out;
   lbm_space_copy_host(raw_out, &space);
 
-  for (int i = 0; i < space.info.x_size; i++) {
+  for (int i = 0; i < space.info.z_size; i++) {
     std::cout << "\t-----------------------" << std::endl;
-    for (int j = 0; j < space.info.x_size; j++) {
+    for (int j = 0; j < space.info.y_size; j++) {
       std::cout << "\t";
       for (int k = 0; k < space.info.x_size; k++) {
         u_int32_t index = (k * space.info.x_size * space.info.y_size) +

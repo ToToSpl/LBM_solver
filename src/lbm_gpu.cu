@@ -3,6 +3,7 @@
 #include <cuda.h>
 #include <cuda_runtime.h>
 #include <iostream>
+#include <sys/types.h>
 
 #include "../include/lbm_gpu.cuh"
 
@@ -18,20 +19,57 @@ inline void gpuAssert(cudaError_t code, const char *file, int line,
   }
 }
 
-__global__ void gpu_init_memory(LatticeNode *space, LatticeInfo space_data) {
+__device__ inline LatticeNode *get_node_from_pitched(cudaPitchedPtr spacePtr,
+                                                     LatticeInfo space_data,
+                                                     u_int32_t x, u_int32_t y,
+                                                     u_int32_t z) {
+  LatticeNode *devPtr = (LatticeNode *)spacePtr.ptr;
+  size_t pitch = spacePtr.pitch;
+  size_t slicePitch = pitch * space_data.y_size;
+
+  LatticeNode *elemPtr = (LatticeNode *)(devPtr + z * slicePitch + y * pitch) +
+                         x * sizeof(LatticeNode);
+  return elemPtr;
+}
+
+__device__ inline u_int32_t get_index(LatticeInfo space_data, u_int32_t x,
+                                      u_int32_t y, u_int32_t z) {
+  return (z * space_data.x_size * space_data.y_size) + (y * space_data.x_size) +
+         x;
+}
+
+__global__ void gpu_init_memory(cudaPitchedPtr spacePtr,
+                                LatticeInfo space_data) {
   u_int32_t x = blockDim.x * blockIdx.x + threadIdx.x;
   u_int32_t y = blockDim.y * blockIdx.y + threadIdx.y;
   u_int32_t z = blockDim.z * blockIdx.z + threadIdx.z;
 
-  if (x < space_data.x_size && y < space_data.y_size && z < space_data.z_size) {
-    u_int32_t index = (z * space_data.x_size * space_data.y_size) +
-                      (y * space_data.x_size) + x;
-    float pos = (float)index;
-    space[index].f[0] = 69.f;
-    /*{pos, pos, pos, pos, pos, pos, pos, pos, pos,
-                  pos, pos, pos, pos, pos, pos, pos, pos, pos,
-                  pos, pos, pos, pos, pos, pos, pos, pos, pos};*/
-  }
+  if (!(x < space_data.x_size && y < space_data.y_size &&
+        z < space_data.z_size))
+    return;
+
+  LatticeNode *elemPtr = get_node_from_pitched(spacePtr, space_data, x, y, z);
+  u_int32_t index = get_index(space_data, x, y, z);
+
+  elemPtr->f[0] = index;
+  /*{pos, pos, pos, pos, pos, pos, pos, pos, pos,
+                pos, pos, pos, pos, pos, pos, pos, pos, pos,
+                pos, pos, pos, pos, pos, pos, pos, pos, pos};*/
+}
+
+__global__ void gpu_print_memory(cudaPitchedPtr spacePtr,
+                                 LatticeInfo space_data) {
+  u_int32_t x = blockDim.x * blockIdx.x + threadIdx.x;
+  u_int32_t y = blockDim.y * blockIdx.y + threadIdx.y;
+  u_int32_t z = blockDim.z * blockIdx.z + threadIdx.z;
+
+  if (!(x < space_data.x_size && y < space_data.y_size &&
+        z < space_data.z_size))
+    return;
+
+  LatticeNode *elemPtr = get_node_from_pitched(spacePtr, space_data, x, y, z);
+  u_int32_t index = get_index(space_data, x, y, z);
+  printf("GPU: %i -> %i\n", index, elemPtr->f[0]);
 }
 
 void cuda_wait_for_device() { gpuErrchk(cudaDeviceSynchronize()); }
@@ -46,17 +84,41 @@ void lbm_space_init_device(LatticeSpace *space) {
 }
 
 void lbm_space_init_kernel(LatticeSpace *space) {
+  // TODO: these are hardcoded for 3x3x3 case
   dim3 blockSize(3, 3, 3);
   dim3 gridSize(1, 1, 1);
   gpu_init_memory<<<gridSize, blockSize>>>(
-      (LatticeNode *)((cudaPitchedPtr *)space->device_data)->ptr, space->info);
+      *(cudaPitchedPtr *)space->device_data, space->info);
+  gpuErrchk(cudaPeekAtLastError());
+  gpu_print_memory<<<gridSize, blockSize>>>(
+      *(cudaPitchedPtr *)space->device_data, space->info);
   gpuErrchk(cudaPeekAtLastError());
 }
 
 void lbm_space_copy_host(LatticeNode *raw_data, LatticeSpace *space) {
+  // cudaPitchedPtr dstPtr = *(cudaPitchedPtr *)space->device_data;
+  // raw_data =
+  //     (LatticeNode *)malloc(sizeof(LatticeNode) * space->info.total_size);
+  // dstPtr.ptr = raw_data;
+  // dstPtr.pitch = space->info.x_size * space->info.y_size *
+  // sizeof(LatticeNode);
+  // // std::cout << dstPtr.pitch * dstPtr.xsize * dstPtr.ysize / 4 <<
+  // std::endl; cudaMemcpy3DParms cpy_params = {0}; cpy_params.dstPtr = dstPtr;
+  // cpy_params.srcPtr = *(cudaPitchedPtr *)space->device_data;
+  // cpy_params.extent = make_cudaExtent(sizeof(LatticeNode) *
+  // space->info.x_size,
+  //                                     space->info.y_size,
+  //                                     space->info.z_size);
+  // cpy_params.kind = cudaMemcpyDeviceToHost;
+  //
+  // gpuErrchk(cudaMemcpy3D(&cpy_params));
+
   raw_data =
       (LatticeNode *)malloc(sizeof(LatticeNode) * space->info.total_size);
-  gpuErrchk(cudaMemcpy(raw_data, ((cudaPitchedPtr *)space->device_data)->ptr,
-                       sizeof(LatticeNode) * space->info.total_size,
-                       cudaMemcpyDeviceToHost));
+  gpuErrchk(cudaMemcpy2D(raw_data, space->info.y_size * space->info.z_size,
+                         ((cudaPitchedPtr *)space->device_data)->ptr,
+                         ((cudaPitchedPtr *)space->device_data)->pitch,
+                         space->info.x_size * sizeof(LatticeNode),
+                         space->info.y_size * space->info.z_size,
+                         cudaMemcpyDeviceToHost));
 }
