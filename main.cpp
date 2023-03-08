@@ -9,9 +9,9 @@
 int main() {
 
   LatticeSpace space;
-  space.info.x_size = 3;
+  space.info.x_size = 1;
   space.info.y_size = 3;
-  space.info.z_size = 3;
+  space.info.z_size = 1;
   space.info.total_size =
       space.info.x_size * space.info.y_size * space.info.z_size;
 
