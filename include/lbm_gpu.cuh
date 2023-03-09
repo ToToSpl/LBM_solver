@@ -6,7 +6,7 @@
 // D3Q27
 // for directions and weights see p.90
 typedef struct {
-  u_int32_t f[1];
+  u_int32_t f[27];
 } LatticeNode;
 
 typedef struct {
@@ -16,12 +16,12 @@ typedef struct {
 
 typedef struct {
   LatticeInfo info;
-  void *device_data; // cudaPitcherPtr
+  LatticeNode *device_data;
 } LatticeSpace;
 
 void cuda_wait_for_device();
 void lbm_space_init_device(LatticeSpace *space);
 void lbm_space_init_kernel(LatticeSpace *space);
-void lbm_space_copy_host(LatticeNode **raw_data, LatticeSpace *space);
+LatticeNode *lbm_space_copy_host(LatticeSpace *space);
 
 #endif

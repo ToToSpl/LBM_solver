@@ -10,7 +10,7 @@
 int main() {
 
   LatticeSpace space;
-  space.info.x_size = 1;
+  space.info.x_size = 3;
   space.info.y_size = 3;
   space.info.z_size = 3;
   space.info.total_size =
@@ -20,8 +20,7 @@ int main() {
   lbm_space_init_kernel(&space);
   cuda_wait_for_device();
 
-  LatticeNode *raw_out;
-  lbm_space_copy_host(&raw_out, &space);
+  LatticeNode *raw_out = lbm_space_copy_host(&space);
 
   for (int i = 0; i < space.info.z_size; i++) {
     std::cout << "\t-----------------------" << std::endl;
