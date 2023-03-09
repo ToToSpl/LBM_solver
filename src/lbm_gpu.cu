@@ -1,4 +1,5 @@
 
+#include <cstddef>
 #include <cstdlib>
 #include <cuda.h>
 #include <cuda_runtime.h>
@@ -91,12 +92,14 @@ void lbm_space_init_kernel(LatticeSpace *space) {
   gpu_init_memory<<<gridSize, blockSize>>>(
       *(cudaPitchedPtr *)space->device_data, space->info);
   gpuErrchk(cudaPeekAtLastError());
+  gpuErrchk(cudaDeviceSynchronize());
   gpu_print_memory<<<gridSize, blockSize>>>(
       *(cudaPitchedPtr *)space->device_data, space->info);
   gpuErrchk(cudaPeekAtLastError());
+  gpuErrchk(cudaDeviceSynchronize());
 }
 
-void lbm_space_copy_host(LatticeNode *raw_data, LatticeSpace *space) {
+void lbm_space_copy_host(LatticeNode **raw_data, LatticeSpace *space) {
   // cudaPitchedPtr dstPtr = *(cudaPitchedPtr *)space->device_data;
   // raw_data =
   //     (LatticeNode *)malloc(sizeof(LatticeNode) * space->info.total_size);
@@ -131,7 +134,7 @@ void lbm_space_copy_host(LatticeNode *raw_data, LatticeSpace *space) {
                          x * sizeof(LatticeNode);
   return elemPtr;
   */
-  raw_data =
+  *raw_data =
       (LatticeNode *)malloc(sizeof(LatticeNode) * space->info.total_size);
   cudaPitchedPtr *cudaPtr = (cudaPitchedPtr *)space->device_data;
   std::cout << cudaPtr->ysize << " " << cudaPtr->xsize << " " << cudaPtr->pitch
@@ -143,12 +146,16 @@ void lbm_space_copy_host(LatticeNode *raw_data, LatticeSpace *space) {
                           (j * space->info.x_size) + k;
 
         size_t slicePitch = cudaPtr->pitch * space->info.y_size;
-        u_int32_t gpu_index =
-            i * slicePitch + j * cudaPtr->pitch + k * sizeof(LatticeNode);
-        printf("%p\n", (LatticeNode *)cudaPtr->ptr + gpu_index);
-        cudaMemcpy((char *)raw_data + index * sizeof(LatticeNode),
-                   (LatticeNode *)cudaPtr->ptr + gpu_index, sizeof(LatticeNode),
-                   cudaMemcpyDeviceToHost);
+        LatticeNode *gpu_ptr =
+            (LatticeNode *)((LatticeNode *)cudaPtr->ptr + i * slicePitch +
+                            j * cudaPtr->pitch) +
+            k * sizeof(LatticeNode);
+        printf("%p\t", gpu_ptr);
+        std::cout << index << std::endl;
+
+        gpuErrchk(cudaMemcpy(&(*raw_data)[index], gpu_ptr, sizeof(LatticeNode),
+                             cudaMemcpyDeviceToHost));
+        std::cout << (*raw_data)[index].f[0] << std::endl;
       }
     }
   }
