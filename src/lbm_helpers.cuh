@@ -1,5 +1,5 @@
-#ifndef CUDA_HELPERS_INCLUDE
-#define CUDA_HELPERS_INCLUDE
+#ifndef LBM_HELPERS_INCLUDE
+#define LBM_HELPERS_INCLUDE
 #include <cuda.h>
 
 // Data taken from:

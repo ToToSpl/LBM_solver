@@ -9,17 +9,7 @@
 #include "../include/lbm_gpu.cuh"
 #include "./lbm_helpers.cuh"
 
-#define gpuErrchk(ans)                                                         \
-  { gpuAssert((ans), __FILE__, __LINE__); }
-inline void gpuAssert(cudaError_t code, const char *file, int line,
-                      bool abort = true) {
-  if (code != cudaSuccess) {
-    fprintf(stderr, "GPUassert: %s %s %d\n", cudaGetErrorString(code), file,
-            line);
-    if (abort)
-      exit(code);
-  }
-}
+// ---- KERNELS -------
 
 __device__ inline u_int32_t get_index(LatticeInfo &space_data, u_int32_t x,
                                       u_int32_t y, u_int32_t z) {
@@ -28,6 +18,7 @@ __device__ inline u_int32_t get_index(LatticeInfo &space_data, u_int32_t x,
 }
 
 __global__ void gpu_init_memory(LatticeNode *space, LatticeInfo space_data) {
+
   u_int32_t x = blockDim.x * blockIdx.x + threadIdx.x;
   u_int32_t y = blockDim.y * blockIdx.y + threadIdx.y;
   u_int32_t z = blockDim.z * blockIdx.z + threadIdx.z;
@@ -39,9 +30,20 @@ __global__ void gpu_init_memory(LatticeNode *space, LatticeInfo space_data) {
   u_int32_t index = get_index(space_data, x, y, z);
 
   space[index].f[0] = index;
-  /*{pos, pos, pos, pos, pos, pos, pos, pos, pos,
-                pos, pos, pos, pos, pos, pos, pos, pos, pos,
-                pos, pos, pos, pos, pos, pos, pos, pos, pos};*/
+}
+
+// ---- END KERNELS -------
+
+#define gpuErrchk(ans)                                                         \
+  { gpuAssert((ans), __FILE__, __LINE__); }
+inline void gpuAssert(cudaError_t code, const char *file, int line,
+                      bool abort = true) {
+  if (code != cudaSuccess) {
+    fprintf(stderr, "GPUassert: %s %s %d\n", cudaGetErrorString(code), file,
+            line);
+    if (abort)
+      exit(code);
+  }
 }
 
 void cuda_wait_for_device() { gpuErrchk(cudaDeviceSynchronize()); }
