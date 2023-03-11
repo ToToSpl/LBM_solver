@@ -6,12 +6,12 @@
 // D3Q27
 // for directions and weights see p.90
 typedef struct {
-  u_int32_t f[27];
+  float f[27];
 } LatticeNode;
 
 typedef struct {
-  u_int32_t x_size, y_size, z_size;
-  u_int32_t total_size;
+  size_t x_size, y_size, z_size;
+  size_t total_size;
 } LatticeInfo;
 
 typedef struct {

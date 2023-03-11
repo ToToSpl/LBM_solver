@@ -13,12 +13,12 @@ endif()
 
 include_directories("${CUDA_INCLUDE_DIRS}")
 
-# set(CMAKE_CXX_FLAGS_RELEASE "-O3")
+set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 
 add_executable(lbm_solver 
   main.cpp
   src/lbm_gpu.cu
-  src/cuda_kernel.cu
+  src/lbm_helpers.cu
   )
 
 target_compile_features(lbm_solver PUBLIC cxx_std_17)
