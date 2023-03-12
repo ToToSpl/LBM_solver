@@ -11,10 +11,6 @@
 // D3Q27 space see p.83 for more info
 #define LBM_SPEED_COUNTS 27
 
-typedef struct {
-  float x, y, z;
-} Vec3;
-
 #define LBM_SPEED_VECTORS                                                      \
   {                                                                            \
     {0.f, 0.f, 0.f}, {1.f, 0.f, 0.f}, {-1.f, 0.f, 0.f}, {0.f, 1.f, 0.f},       \

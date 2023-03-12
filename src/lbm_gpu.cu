@@ -90,6 +90,9 @@ void cuda_wait_for_device() { gpuErrchk(cudaDeviceSynchronize()); }
 void lbm_space_init_device(LatticeSpace *space) {
   gpuErrchk(cudaMalloc(&space->device_data,
                        space->info.total_size * sizeof(LatticeNode)));
+
+  gpuErrchk(cudaMalloc(&space->device_output,
+                       space->info.total_size * sizeof(LatticeOutput)));
 }
 
 void lbm_space_init_kernel(LatticeSpace *space) {

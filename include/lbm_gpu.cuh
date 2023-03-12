@@ -15,8 +15,18 @@ typedef struct {
 } LatticeInfo;
 
 typedef struct {
+  float x, y, z;
+} Vec3;
+
+typedef struct {
+  Vec3 u;
+  float rho;
+} LatticeOutput;
+
+typedef struct {
   LatticeInfo info;
   LatticeNode *device_data;
+  LatticeOutput *device_output;
 } LatticeSpace;
 
 void cuda_wait_for_device();
