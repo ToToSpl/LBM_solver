@@ -4,6 +4,7 @@
 #include <sys/types.h>
 
 // Include local CUDA header files.
+#include "include/lbm_constants.h"
 #include "include/lbm_gpu.cuh"
 
 int main() {
@@ -26,9 +27,12 @@ int main() {
       for (int k = 0; k < space.info.x_size; k++) {
         size_t index = (i * space.info.x_size * space.info.y_size) +
                        (j * space.info.x_size) + k;
-        if (index != raw_out[index].f[0]) {
-          std::cout << "Failed comparison at: " << index << std::endl;
-          return 0;
+        for (int l = 0; l < LBM_SPEED_COUNTS; l++) {
+          if (raw_out[index].f[l] != 1.0f) {
+            std::cout << "Failed comparison at: " << index << " " << l << " "
+                      << raw_out[index].f[l] << std::endl;
+            return 0;
+          }
         }
       }
     }
