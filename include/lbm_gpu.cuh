@@ -32,6 +32,10 @@ typedef struct {
 void cuda_wait_for_device();
 void lbm_space_init_device(LatticeSpace *space);
 void lbm_space_init_kernel(LatticeSpace *space);
+void lbm_space_bgk_collision(LatticeSpace *space);
+
+void lbm_space_stream(LatticeSpace *space);
+
 LatticeNode *lbm_space_copy_host(LatticeSpace *space);
 
 #endif

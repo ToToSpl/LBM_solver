@@ -15,8 +15,8 @@ ComputeDim compute_dim_create(size_t x, size_t y, size_t z) {
   }
   // otherwise divide space using default system
   size_t grid_x = INTEGER_DIV_CEIL(x, DEFAULT_BLOCK_X);
-  size_t grid_y = INTEGER_DIV_CEIL(x, DEFAULT_BLOCK_Y);
-  size_t grid_z = INTEGER_DIV_CEIL(x, DEFAULT_BLOCK_Z);
+  size_t grid_y = INTEGER_DIV_CEIL(y, DEFAULT_BLOCK_Y);
+  size_t grid_z = INTEGER_DIV_CEIL(z, DEFAULT_BLOCK_Z);
 
   return {dim3(grid_x, grid_y, grid_z),
           dim3(DEFAULT_BLOCK_X, DEFAULT_BLOCK_Y, DEFAULT_BLOCK_Z)};
