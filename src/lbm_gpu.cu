@@ -6,30 +6,69 @@
 #include <iostream>
 #include <sys/types.h>
 
+#include "../include/lbm_constants.h"
 #include "../include/lbm_gpu.cuh"
 #include "./lbm_helpers.cuh"
 
 // ---- KERNELS -------
 
-__device__ inline u_int32_t get_index(LatticeInfo &space_data, u_int32_t x,
-                                      u_int32_t y, u_int32_t z) {
+__device__ inline size_t get_index(LatticeInfo &space_data, u_int32_t x,
+                                   u_int32_t y, u_int32_t z) {
   return (z * space_data.x_size * space_data.y_size) + (y * space_data.x_size) +
          x;
 }
 
+// Standard procedure, check if core is in space and initialize x,y,z and index
+#define KERNEL_ONE_ELEMENT_INIT                                                \
+  u_int32_t x = blockDim.x * blockIdx.x + threadIdx.x;                         \
+  u_int32_t y = blockDim.y * blockIdx.y + threadIdx.y;                         \
+  u_int32_t z = blockDim.z * blockIdx.z + threadIdx.z;                         \
+  if (!(x < space_data.x_size && y < space_data.y_size &&                      \
+        z < space_data.z_size))                                                \
+    return;                                                                    \
+  size_t index = get_index(space_data, x, y, z);
+
 __global__ void gpu_init_memory(LatticeNode *space, LatticeInfo space_data) {
+  KERNEL_ONE_ELEMENT_INIT
 
-  u_int32_t x = blockDim.x * blockIdx.x + threadIdx.x;
-  u_int32_t y = blockDim.y * blockIdx.y + threadIdx.y;
-  u_int32_t z = blockDim.z * blockIdx.z + threadIdx.z;
+  // set ones in each speed
+  for (int i = 0; i < LBM_SPEED_COUNTS; i++)
+    space[index].f[i] = 1.0f;
+}
 
-  if (!(x < space_data.x_size && y < space_data.y_size &&
-        z < space_data.z_size))
-    return;
+__global__ void gpu_collision_bgk(LatticeNode *space, LatticeInfo space_data) {
+  KERNEL_ONE_ELEMENT_INIT
+  LatticeNode node = space[index];
 
-  u_int32_t index = get_index(space_data, x, y, z);
+  Vec3 spd_vecs[] = LBM_SPEED_VECTORS;
+  float spd_weights[] = LBM_SPEED_WEIGHTS;
 
-  space[index].f[0] = index;
+  float rho = 0.f;
+  Vec3 u = {0.f, 0.f, 0.f};
+  for (u_int8_t i = 0; i < LBM_SPEED_COUNTS; i++) {
+    rho += node.f[i];
+    u.x += spd_vecs[i].x * node.f[i];
+    u.y += spd_vecs[i].y * node.f[i];
+    u.z += spd_vecs[i].z * node.f[i];
+  }
+  u.x /= rho;
+  u.y /= rho;
+  u.z /= rho;
+
+  float elem3 = u.x * u.x + u.y * u.y + u.z * u.z;
+  for (u_int8_t i = 0; i < LBM_SPEED_COUNTS; i++) {
+    Vec3 spd = spd_vecs[i];
+    float elem1 = u.x * spd.x + u.y * spd.y + u.z * spd.z;
+    float elem2 = elem1 * elem1;
+
+    float f_eq =
+        spd_weights[i] * rho *
+        (1.f + elem1 / CS2 + elem2 / (2 * CS2 * CS2) - elem3 / (2 * CS2));
+
+    float omega = -(node.f[i] - f_eq) * SIMULATION_DT_TAU;
+
+    node.f[i] += omega;
+  }
 }
 
 // ---- END KERNELS -------
