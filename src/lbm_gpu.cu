@@ -33,7 +33,7 @@ __global__ void gpu_init_memory(LatticeNode *space, LatticeInfo space_data) {
 
   // set ones in each speed
   for (int i = 0; i < LBM_SPEED_COUNTS; i++)
-    space[index].f[i] = (float)index; // 1.0f;
+    space[index].f[i] = 1.0f;
 }
 
 __global__ void gpu_collision_bgk(LatticeNode *space, LatticeInfo space_data) {
@@ -273,12 +273,19 @@ inline void gpuAssert(cudaError_t code, const char *file, int line,
 
 void cuda_wait_for_device() { gpuErrchk(cudaDeviceSynchronize()); }
 
-void lbm_space_init_device(LatticeSpace *space) {
+void lbm_space_init_device(LatticeSpace *space,
+                           LatticeCollisionType *collisions) {
   gpuErrchk(cudaMalloc(&space->device_data,
                        space->info.total_size * sizeof(LatticeNode)));
 
   gpuErrchk(cudaMalloc(&space->device_output,
                        space->info.total_size * sizeof(LatticeOutput)));
+
+  gpuErrchk(cudaMalloc(&space->device_collision,
+                       space->info.total_size * sizeof(LatticeCollisionType)));
+  gpuErrchk(cudaMemcpy(space->device_collision, collisions,
+                       space->info.total_size * sizeof(LatticeCollisionType),
+                       cudaMemcpyHostToDevice));
 }
 
 void lbm_space_init_kernel(LatticeSpace *space) {
