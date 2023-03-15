@@ -18,20 +18,24 @@ int main() {
   space.info.total_size =
       space.info.x_size * space.info.y_size * space.info.z_size;
 
-  LatticeCollisionType *collision = (LatticeCollisionType *)malloc(
-      space.info.total_size * sizeof(LatticeCollisionType));
+  {
+    LatticeCollisionType *collision = (LatticeCollisionType *)malloc(
+        space.info.total_size * sizeof(LatticeCollisionType));
 
-  for (int i = 0; i < space.info.z_size; i++) {
-    for (int j = 0; j < space.info.y_size; j++) {
-      for (int k = 0; k < space.info.x_size; k++) {
-        size_t index = (i * space.info.x_size * space.info.y_size) +
-                       (j * space.info.x_size) + k;
-        collision[index] = LatticeCollisionEnum::NO_COLLISION;
+    for (int i = 0; i < space.info.z_size; i++) {
+      for (int j = 0; j < space.info.y_size; j++) {
+        for (int k = 0; k < space.info.x_size; k++) {
+          size_t index = (i * space.info.x_size * space.info.y_size) +
+                         (j * space.info.x_size) + k;
+          collision[index] = LatticeCollisionEnum::NO_COLLISION;
+        }
       }
     }
+
+    lbm_space_init_device(&space, collision);
+    free(collision);
   }
 
-  lbm_space_init_device(&space, collision);
   lbm_space_init_kernel(&space);
   cuda_wait_for_device();
 

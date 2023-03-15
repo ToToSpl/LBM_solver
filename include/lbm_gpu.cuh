@@ -23,7 +23,12 @@ typedef struct {
 } Vec3;
 
 typedef struct {
-  Vec3 s1, s2; // for now supports only two different speeds
+  Vec3 u;
+  enum InletDir { X_PLUS, X_MINUS, Y_PLUS, Y_MINUS, Z_PLUS, Z_MINUS };
+} LatticeWall;
+
+typedef struct {
+  LatticeWall s1, s2;
 } LatticeWallSpeeds;
 
 typedef struct {
