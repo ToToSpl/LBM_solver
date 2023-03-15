@@ -49,4 +49,12 @@
 #define LBM_STREAM_Z_MINUS                                                     \
   { 6, 10, 12, 15, 17, 20, 21, 24, 26 }
 
+// TODO: can also be described as: odd -> index+1, even -> index-1. check which
+// is faster
+#define LBM_COLLISION_MIRROR                                                   \
+  {                                                                            \
+    0, 2, 1, 4, 3, 6, 5, 8, 7, 10, 9, 12, 11, 14, 13, 16, 15, 18, 17, 20, 19,  \
+        22, 21, 24, 23, 26, 25                                                 \
+  }
+
 #endif
