@@ -28,12 +28,13 @@ __device__ inline size_t get_index(LatticeInfo &space_data, size_t x, size_t y,
     return;                                                                    \
   size_t index = get_index(space_data, x, y, z);
 
-__global__ void gpu_init_memory(LatticeNode *space, LatticeInfo space_data) {
+__global__ void gpu_init_memory(LatticeNode *space, LatticeInfo space_data,
+                                float begin_spd_rho) {
   KERNEL_ONE_ELEMENT_INIT
 
   // set ones in each speed
   for (int i = 0; i < LBM_SPEED_COUNTS; i++)
-    space[index].f[i] = 1.0f;
+    space[index].f[i] = begin_spd_rho;
 }
 
 __global__ void gpu_collision_bgk(LatticeNode *space, LatticeInfo space_data) {
@@ -288,12 +289,12 @@ void lbm_space_init_device(LatticeSpace *space,
                        cudaMemcpyHostToDevice));
 }
 
-void lbm_space_init_kernel(LatticeSpace *space) {
+void lbm_space_init_kernel(LatticeSpace *space, float begin_spd_rho) {
   ComputeDim compute_dim = compute_dim_create(
       space->info.x_size, space->info.y_size, space->info.z_size);
 
   gpu_init_memory<<<compute_dim.gridSize, compute_dim.blockSize>>>(
-      space->device_data, space->info);
+      space->device_data, space->info, begin_spd_rho);
   gpuErrchk(cudaPeekAtLastError());
 }
 
