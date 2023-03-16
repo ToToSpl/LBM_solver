@@ -22,9 +22,10 @@ typedef struct {
   float x, y, z;
 } Vec3;
 
+enum InletDir { X_PLUS, X_MINUS, Y_PLUS, Y_MINUS, Z_PLUS, Z_MINUS };
 typedef struct {
   Vec3 u;
-  enum InletDir { X_PLUS, X_MINUS, Y_PLUS, Y_MINUS, Z_PLUS, Z_MINUS };
+  InletDir dir;
 } LatticeWall;
 
 typedef struct {

@@ -9,35 +9,64 @@
 #include "include/lbm_constants.h"
 #include "include/lbm_gpu.cuh"
 
-int main() {
-
+LatticeSpace create_cylinder_experiment() {
+  size_t width = 400, height = 100, depth = 100;
+  /*
+    cylinder = (X - SIMULATION_WIDTH/4)**2 + \
+        (Y - SIMULATION_HEIGHT/2)**2 < (SIMULATION_HEIGHT/4)**2
+   */
+  size_t cyl_x = width / 4, cyl_y = height / 2,
+         cyl_r2 = (height / 4) * (height / 4);
   LatticeSpace space;
-  space.info.x_size = 800;
-  space.info.y_size = 200;
-  space.info.z_size = 300;
-  space.info.total_size =
-      space.info.x_size * space.info.y_size * space.info.z_size;
+  space.info.x_size = width;
+  space.info.y_size = height;
+  space.info.z_size = depth;
+  space.info.total_size = width * height * depth;
 
-  {
-    LatticeCollisionType *collision = (LatticeCollisionType *)malloc(
-        space.info.total_size * sizeof(LatticeCollisionType));
+  LatticeCollisionType *collision = (LatticeCollisionType *)malloc(
+      space.info.total_size * sizeof(LatticeCollisionType));
 
-    for (int i = 0; i < space.info.z_size; i++) {
-      for (int j = 0; j < space.info.y_size; j++) {
-        for (int k = 0; k < space.info.x_size; k++) {
-          size_t index = (i * space.info.x_size * space.info.y_size) +
-                         (j * space.info.x_size) + k;
+  // define inlet and outlet speed
+  Vec3 u_in = {-0.1f, 0.f, 0.f};
+  LatticeWall inlet = {u_in, InletDir::X_PLUS};
+  LatticeWall outlet = {u_in, InletDir::X_MINUS};
+  space.info.wall_speeds.s1 = inlet;
+  space.info.wall_speeds.s2 = outlet;
+
+  for (int z = 0; z < depth; z++) {
+    for (int y = 0; y < height; y++) {
+      for (int x = 0; x < width; x++) {
+        size_t index = (z * width * height) + (y * width) + x;
+
+        // inlet
+        if (x == 0)
+          collision[index] = LatticeCollisionEnum::BOUNCE_BACK_SPEED_1;
+        // outlet
+        else if (x == space.info.x_size - 1)
+          collision[index] = LatticeCollisionEnum::BOUNCE_BACK_SPEED_2;
+        // side walls
+        else if (y == 0 || y == height - 1 || z == 0 || z == depth - 1)
+          collision[index] = LatticeCollisionEnum::BOUNCE_BACK_STATIC;
+        // cylinder
+        else if ((x - cyl_x) * (x - cyl_x) + (y - cyl_y) * (y - cyl_y) < cyl_r2)
+          collision[index] = LatticeCollisionEnum::BOUNCE_BACK_STATIC;
+        // normal space
+        else
           collision[index] = LatticeCollisionEnum::NO_COLLISION;
-        }
       }
     }
-
-    lbm_space_init_device(&space, collision);
-    free(collision);
   }
 
-  lbm_space_init_kernel(&space);
+  lbm_space_init_device(&space, collision);
+  free(collision);
+
+  lbm_space_init_kernel(&space, 1.0f);
   cuda_wait_for_device();
+  return space;
+}
+
+int main() {
+  LatticeSpace space = create_cylinder_experiment();
 
   auto start = std::chrono::high_resolution_clock::now();
   int sampling = 5;
