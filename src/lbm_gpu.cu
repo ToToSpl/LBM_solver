@@ -38,7 +38,7 @@ __global__ void gpu_init_memory(LatticeNode *space, LatticeInfo space_data,
 
 __global__ void gpu_collision_bgk(LatticeNode *space, LatticeInfo space_data) {
   KERNEL_ONE_ELEMENT_INIT
-  LatticeNode node = space[index];
+  LatticeNode *node = &space[index];
 
   Vec3 spd_vecs[] = LBM_SPEED_VECTORS;
   float spd_weights[] = LBM_SPEED_WEIGHTS;
@@ -46,10 +46,10 @@ __global__ void gpu_collision_bgk(LatticeNode *space, LatticeInfo space_data) {
   float rho = 0.f;
   Vec3 u = {0.f, 0.f, 0.f};
   for (u_int8_t i = 0; i < LBM_SPEED_COUNTS; i++) {
-    rho += node.f[i];
-    u.x += spd_vecs[i].x * node.f[i];
-    u.y += spd_vecs[i].y * node.f[i];
-    u.z += spd_vecs[i].z * node.f[i];
+    rho += node->f[i];
+    u.x += spd_vecs[i].x * node->f[i];
+    u.y += spd_vecs[i].y * node->f[i];
+    u.z += spd_vecs[i].z * node->f[i];
   }
   u.x /= rho;
   u.y /= rho;
@@ -65,9 +65,9 @@ __global__ void gpu_collision_bgk(LatticeNode *space, LatticeInfo space_data) {
         spd_weights[i] * rho *
         (1.f + elem1 / CS2 + elem2 / (2 * CS2 * CS2) - elem3 / (2 * CS2));
 
-    float omega = -(node.f[i] - f_eq) * SIMULATION_DT_TAU;
+    float omega = -(node->f[i] - f_eq) * SIMULATION_DT_TAU;
 
-    node.f[i] += omega;
+    node->f[i] += omega;
   }
 }
 
@@ -80,12 +80,12 @@ __global__ void gpu_boundary_condition(LatticeNode *space,
   if (col == LatticeCollisionEnum::NO_COLLISION)
     return;
 
-  LatticeNode node = space[index];
+  LatticeNode *node = &space[index];
   // instead of mirror map we can swap neighbours
   for (int i = 1; i < LBM_SPEED_COUNTS - 1; i += 2) {
-    float temp = node.f[i];
-    node.f[i] = node.f[i + 1];
-    node.f[i + 1] = temp;
+    float temp = node->f[i];
+    node->f[i] = node->f[i + 1];
+    node->f[i + 1] = temp;
   }
   if (col == LatticeCollisionEnum::BOUNCE_BACK_STATIC)
     return;
@@ -120,7 +120,7 @@ __global__ void gpu_boundary_condition(LatticeNode *space,
   LatticeNode neigh = space[rho_i];
   float rho_b1 = 0.f, rho_b2 = 0.f;
   for (int i = 0; i < LBM_SPEED_COUNTS; i++) {
-    rho_b1 += node.f[i];
+    rho_b1 += node->f[i];
     rho_b2 += neigh.f[i];
   }
   float rho_w = rho_b1 + 0.5f * (rho_b1 - rho_b2);
@@ -132,8 +132,32 @@ __global__ void gpu_boundary_condition(LatticeNode *space,
     float dot_v = (spd_vecs[i].x * w.u.x + spd_vecs[i].y * w.u.y +
                    spd_vecs[i].z * w.u.z) /
                   CS2;
-    node.f[i] -= 2.f * rho_w * spd_weights[i] * dot_v;
+    node->f[i] -= 2.f * rho_w * spd_weights[i] * dot_v;
   }
+}
+
+__global__ void gpu_get_output(LatticeNode *space, LatticeOutput *output,
+                               LatticeInfo space_data) {
+  KERNEL_ONE_ELEMENT_INIT
+  LatticeNode node = space[index];
+
+  Vec3 spd_vecs[] = LBM_SPEED_VECTORS;
+  Vec3 u = {0.f, 0.f, 0.f};
+  float rho = 0.f;
+
+  for (int i = 0; i < LBM_SPEED_COUNTS; i++)
+    rho += node.f[i];
+
+  for (int i = 0; i < LBM_SPEED_COUNTS; i++) {
+    u.x += node.f[i] * spd_vecs[i].x;
+    u.y += node.f[i] * spd_vecs[i].y;
+    u.z += node.f[i] * spd_vecs[i].z;
+  }
+  u.x /= rho;
+  u.y /= rho;
+  u.z /= rho;
+
+  output[index] = {u, rho};
 }
 
 __global__ void gpu_stream_x_plus(LatticeNode *space, LatticeInfo space_data) {
@@ -350,6 +374,9 @@ void lbm_space_init_device(LatticeSpace *space, LatticeCollision *collisions) {
   gpuErrchk(cudaMemcpy(space->device_collision, collisions,
                        space->info.total_size * sizeof(LatticeCollision),
                        cudaMemcpyHostToDevice));
+
+  space->host_output =
+      (LatticeOutput *)malloc(space->info.total_size * sizeof(LatticeOutput));
 }
 
 void lbm_space_init_kernel(LatticeSpace *space, float begin_spd_rho) {
@@ -379,6 +406,20 @@ void lbm_space_boundary_condition(LatticeSpace *space) {
       space->device_data, space->device_collision, space->info);
   gpuErrchk(cudaPeekAtLastError());
   gpuErrchk(cudaDeviceSynchronize());
+}
+
+void lbm_space_get_output(LatticeSpace *space, LatticeOutput *output_host) {
+  ComputeDim compute_dim = compute_dim_create(
+      space->info.x_size, space->info.y_size, space->info.z_size);
+
+  gpu_get_output<<<compute_dim.gridSize, compute_dim.blockSize>>>(
+      space->device_data, space->device_output, space->info);
+  gpuErrchk(cudaPeekAtLastError());
+  gpuErrchk(cudaDeviceSynchronize());
+
+  gpuErrchk(cudaMemcpy(space->host_output, space->device_output,
+                       space->info.total_size * sizeof(LatticeOutput),
+                       cudaMemcpyDeviceToHost));
 }
 
 void lbm_space_stream(LatticeSpace *space) {

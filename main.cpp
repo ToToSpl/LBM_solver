@@ -70,29 +70,13 @@ int main() {
     lbm_space_bgk_collision(&space);
     lbm_space_boundary_condition(&space);
     lbm_space_stream(&space);
+    lbm_space_get_output(&space, nullptr);
   }
   auto stop = std::chrono::high_resolution_clock::now();
   auto duration =
       std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
   std::cout << (float)duration.count() / ((float)sampling * 1000.f) << "s"
             << std::endl;
-
-  return 0;
-
-  LatticeNode *raw_out = lbm_space_copy_host(&space);
-
-  for (int i = 0; i < space.info.z_size; i++) {
-    std::cout << "----------------" << std::endl;
-    for (int j = 0; j < space.info.y_size; j++) {
-      for (int k = 0; k < space.info.x_size; k++) {
-        size_t index = (i * space.info.x_size * space.info.y_size) +
-                       (j * space.info.x_size) + k;
-        std::cout << raw_out[index].f[1] << "\t";
-      }
-      std::cout << std::endl;
-    }
-    std::cout << std::endl;
-  }
 
   return 0;
 }
