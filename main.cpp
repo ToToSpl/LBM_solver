@@ -61,16 +61,26 @@ LatticeSpace create_cylinder_experiment() {
   return space;
 }
 
+float average_lbm_density(LatticeSpace &space) {
+  float rho_avg = 0.f;
+  for (size_t i = 0; i < space.info.total_size; i++)
+    rho_avg += space.host_output[i].rho;
+  rho_avg /= (float)space.info.total_size;
+  return rho_avg;
+}
+
 int main() {
   LatticeSpace space = create_cylinder_experiment();
 
   auto start = std::chrono::high_resolution_clock::now();
-  int sampling = 10;
+  int sampling = 8000;
   for (int i = 0; i < sampling; i++) {
     lbm_space_bgk_collision(&space);
     lbm_space_boundary_condition(&space);
     lbm_space_stream(&space);
     lbm_space_get_output(&space, nullptr);
+    if (i % 20 == 0)
+      std::cout << i << "\t" << average_lbm_density(space) << std::endl;
   }
   auto stop = std::chrono::high_resolution_clock::now();
   auto duration =
