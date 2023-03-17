@@ -11,7 +11,7 @@ enum LatticeCollisionEnum {
   BOUNCE_BACK_SPEED_1 = 2, // collision with moving wall, speed set in struct
   BOUNCE_BACK_SPEED_2 = 3, // collision with moving wall, speed set in struct
 };
-typedef u_int8_t LatticeCollisionType;
+typedef u_int8_t LatticeCollision;
 // D3Q27
 // for directions and weights see p.90
 typedef struct {
@@ -46,15 +46,15 @@ typedef struct {
 typedef struct {
   LatticeInfo info;
   LatticeNode *device_data;
-  LatticeCollisionType *device_collision;
+  LatticeCollision *device_collision;
   LatticeOutput *device_output;
 } LatticeSpace;
 
 void cuda_wait_for_device();
-void lbm_space_init_device(LatticeSpace *space,
-                           LatticeCollisionType *collisions);
+void lbm_space_init_device(LatticeSpace *space, LatticeCollision *collisions);
 void lbm_space_init_kernel(LatticeSpace *space, float begin_spd_rho = 1.0f);
 void lbm_space_bgk_collision(LatticeSpace *space);
+void lbm_space_boundary_condition(LatticeSpace *space);
 
 void lbm_space_stream(LatticeSpace *space);
 

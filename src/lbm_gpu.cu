@@ -1,4 +1,3 @@
-
 #include <cstddef>
 #include <cstdlib>
 #include <cuda.h>
@@ -69,6 +68,71 @@ __global__ void gpu_collision_bgk(LatticeNode *space, LatticeInfo space_data) {
     float omega = -(node.f[i] - f_eq) * SIMULATION_DT_TAU;
 
     node.f[i] += omega;
+  }
+}
+
+__global__ void gpu_boundary_condition(LatticeNode *space,
+                                       LatticeCollision *collisions,
+                                       LatticeInfo space_data) {
+  KERNEL_ONE_ELEMENT_INIT
+  LatticeCollision col = collisions[index];
+  // AUTOMATICALLY INCLUDES WALL_ROLL CONDITION
+  if (col == LatticeCollisionEnum::NO_COLLISION)
+    return;
+
+  LatticeNode node = space[index];
+  // instead of mirror map we can swap neighbours
+  for (int i = 1; i < LBM_SPEED_COUNTS - 1; i += 2) {
+    float temp = node.f[i];
+    node.f[i] = node.f[i + 1];
+    node.f[i + 1] = temp;
+  }
+  if (col == LatticeCollisionEnum::BOUNCE_BACK_STATIC)
+    return;
+
+  LatticeWall w;
+  if (col == LatticeCollisionEnum::BOUNCE_BACK_SPEED_1)
+    w = space_data.wall_speeds.s1;
+  else
+    w = space_data.wall_speeds.s2;
+
+  size_t rho_i;
+  switch (w.dir) {
+  case InletDir::X_PLUS:
+    rho_i = get_index(space_data, x + 1, y, z);
+    break;
+  case InletDir::X_MINUS:
+    rho_i = get_index(space_data, x - 1, y, z);
+    break;
+  case InletDir::Y_PLUS:
+    rho_i = get_index(space_data, x, y + 1, z);
+    break;
+  case InletDir::Y_MINUS:
+    rho_i = get_index(space_data, x, y - 1, z);
+    break;
+  case InletDir::Z_PLUS:
+    rho_i = get_index(space_data, x, y, z + 1);
+    break;
+  case InletDir::Z_MINUS:
+    rho_i = get_index(space_data, x, y, z - 1);
+    break;
+  }
+  LatticeNode neigh = space[rho_i];
+  float rho_b1 = 0.f, rho_b2 = 0.f;
+  for (int i = 0; i < LBM_SPEED_COUNTS; i++) {
+    rho_b1 += node.f[i];
+    rho_b2 += neigh.f[i];
+  }
+  float rho_w = rho_b1 + 0.5f * (rho_b1 - rho_b2);
+
+  Vec3 spd_vecs[] = LBM_SPEED_VECTORS;
+  float spd_weights[] = LBM_SPEED_WEIGHTS;
+
+  for (int i = 0; i < LBM_SPEED_COUNTS; i++) {
+    float dot_v = (spd_vecs[i].x * w.u.x + spd_vecs[i].y * w.u.y +
+                   spd_vecs[i].z * w.u.z) /
+                  CS2;
+    node.f[i] -= 2.f * rho_w * spd_weights[i] * dot_v;
   }
 }
 
@@ -274,8 +338,7 @@ inline void gpuAssert(cudaError_t code, const char *file, int line,
 
 void cuda_wait_for_device() { gpuErrchk(cudaDeviceSynchronize()); }
 
-void lbm_space_init_device(LatticeSpace *space,
-                           LatticeCollisionType *collisions) {
+void lbm_space_init_device(LatticeSpace *space, LatticeCollision *collisions) {
   gpuErrchk(cudaMalloc(&space->device_data,
                        space->info.total_size * sizeof(LatticeNode)));
 
@@ -283,9 +346,9 @@ void lbm_space_init_device(LatticeSpace *space,
                        space->info.total_size * sizeof(LatticeOutput)));
 
   gpuErrchk(cudaMalloc(&space->device_collision,
-                       space->info.total_size * sizeof(LatticeCollisionType)));
+                       space->info.total_size * sizeof(LatticeCollision)));
   gpuErrchk(cudaMemcpy(space->device_collision, collisions,
-                       space->info.total_size * sizeof(LatticeCollisionType),
+                       space->info.total_size * sizeof(LatticeCollision),
                        cudaMemcpyHostToDevice));
 }
 
@@ -304,6 +367,16 @@ void lbm_space_bgk_collision(LatticeSpace *space) {
 
   gpu_collision_bgk<<<compute_dim.gridSize, compute_dim.blockSize>>>(
       space->device_data, space->info);
+  gpuErrchk(cudaPeekAtLastError());
+  gpuErrchk(cudaDeviceSynchronize());
+}
+
+void lbm_space_boundary_condition(LatticeSpace *space) {
+  ComputeDim compute_dim = compute_dim_create(
+      space->info.x_size, space->info.y_size, space->info.z_size);
+
+  gpu_boundary_condition<<<compute_dim.gridSize, compute_dim.blockSize>>>(
+      space->device_data, space->device_collision, space->info);
   gpuErrchk(cudaPeekAtLastError());
   gpuErrchk(cudaDeviceSynchronize());
 }

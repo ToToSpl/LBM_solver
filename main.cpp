@@ -11,10 +11,6 @@
 
 LatticeSpace create_cylinder_experiment() {
   size_t width = 400, height = 100, depth = 100;
-  /*
-    cylinder = (X - SIMULATION_WIDTH/4)**2 + \
-        (Y - SIMULATION_HEIGHT/2)**2 < (SIMULATION_HEIGHT/4)**2
-   */
   size_t cyl_x = width / 4, cyl_y = height / 2,
          cyl_r2 = (height / 4) * (height / 4);
   LatticeSpace space;
@@ -23,8 +19,8 @@ LatticeSpace create_cylinder_experiment() {
   space.info.z_size = depth;
   space.info.total_size = width * height * depth;
 
-  LatticeCollisionType *collision = (LatticeCollisionType *)malloc(
-      space.info.total_size * sizeof(LatticeCollisionType));
+  LatticeCollision *collision = (LatticeCollision *)malloc(
+      space.info.total_size * sizeof(LatticeCollision));
 
   // define inlet and outlet speed
   Vec3 u_in = {-0.1f, 0.f, 0.f};
@@ -69,9 +65,10 @@ int main() {
   LatticeSpace space = create_cylinder_experiment();
 
   auto start = std::chrono::high_resolution_clock::now();
-  int sampling = 5;
+  int sampling = 10;
   for (int i = 0; i < sampling; i++) {
     lbm_space_bgk_collision(&space);
+    lbm_space_boundary_condition(&space);
     lbm_space_stream(&space);
   }
   auto stop = std::chrono::high_resolution_clock::now();
