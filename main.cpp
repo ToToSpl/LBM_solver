@@ -1,6 +1,7 @@
 // Include C++ header files.
 #include <cstddef>
 #include <iostream>
+#include <string>
 #include <sys/types.h>
 
 #include <chrono>
@@ -8,6 +9,7 @@
 // Include local CUDA header files.
 #include "include/lbm_constants.h"
 #include "include/lbm_gpu.cuh"
+#include "src/data_compressor.hpp"
 
 LatticeSpace create_cylinder_experiment() {
   size_t width = 400, height = 100, depth = 100;
@@ -38,7 +40,7 @@ LatticeSpace create_cylinder_experiment() {
         if (x == 0)
           collision[index] = LatticeCollisionEnum::BOUNCE_BACK_SPEED_1;
         // outlet
-        else if (x == space.info.x_size - 1)
+        else if (x == width - 1)
           collision[index] = LatticeCollisionEnum::BOUNCE_BACK_SPEED_2;
         // side walls
         else if (y == 0 || y == height - 1 || z == 0 || z == depth - 1)
@@ -69,18 +71,27 @@ float average_lbm_density(LatticeSpace &space) {
   return rho_avg;
 }
 
+std::string create_name(u_int32_t i) {
+  return "./output/sample_" + std::to_string(i) + ".zip";
+}
+
 int main() {
+  DataCompressor compressor(11, 50);
   LatticeSpace space = create_cylinder_experiment();
 
   auto start = std::chrono::high_resolution_clock::now();
   int sampling = 8000;
-  for (int i = 0; i < sampling; i++) {
+  for (u_int32_t i = 0; i < sampling; i++) {
     lbm_space_bgk_collision(&space);
     lbm_space_boundary_condition(&space);
     lbm_space_stream(&space);
-    lbm_space_get_output(&space, nullptr);
+    lbm_space_get_output(&space);
+    compressor.save_memcpy_data((void *)space.host_output,
+                                space.info.total_size * sizeof(LatticeOutput),
+                                create_name(i));
     if (i % 20 == 0)
-      std::cout << i << "\t" << average_lbm_density(space) << std::endl;
+      std::cout << i << "\t" << average_lbm_density(space) << "\t"
+                << compressor.busy_threads() << std::endl;
   }
   auto stop = std::chrono::high_resolution_clock::now();
   auto duration =

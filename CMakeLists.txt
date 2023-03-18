@@ -17,6 +17,7 @@ set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 
 add_executable(lbm_solver 
   main.cpp
+  src/data_compressor.cpp
   src/lbm_gpu.cu
   src/lbm_helpers.cu
   )
@@ -27,4 +28,4 @@ set_target_properties( lbm_solver
                        PROPERTIES CUDA_SEPARABLE_COMPILATION ON
                       )
 
-target_link_libraries(lbm_solver PRIVATE CUDA::cudart)
+target_link_libraries(lbm_solver PRIVATE CUDA::cudart zip)
