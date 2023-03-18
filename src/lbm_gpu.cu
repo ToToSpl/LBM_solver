@@ -408,7 +408,7 @@ void lbm_space_boundary_condition(LatticeSpace *space) {
   gpuErrchk(cudaDeviceSynchronize());
 }
 
-void lbm_space_get_output(LatticeSpace *space, LatticeOutput *output_host) {
+void lbm_space_get_output(LatticeSpace *space) {
   ComputeDim compute_dim = compute_dim_create(
       space->info.x_size, space->info.y_size, space->info.z_size);
 
