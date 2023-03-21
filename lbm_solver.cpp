@@ -85,13 +85,15 @@ int main() {
     lbm_space_bgk_collision(&space);
     lbm_space_boundary_condition(&space);
     lbm_space_stream(&space);
-    lbm_space_get_output(&space);
-    compressor.save_memcpy_data((void *)space.host_output,
-                                space.info.total_size * sizeof(LatticeOutput),
-                                create_name(i));
-    if (i % 20 == 0)
+
+    if (i % 10 == 0) {
+      lbm_space_get_output(&space);
+      compressor.save_memcpy_data((void *)space.host_output,
+                                  space.info.total_size * sizeof(LatticeOutput),
+                                  create_name(i));
       std::cout << i << "\t" << average_lbm_density(space) << "\t"
                 << compressor.busy_threads() << std::endl;
+    }
   }
   auto stop = std::chrono::high_resolution_clock::now();
   auto duration =

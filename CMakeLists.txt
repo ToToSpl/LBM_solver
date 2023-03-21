@@ -16,7 +16,7 @@ include_directories("${CUDA_INCLUDE_DIRS}")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 
 add_executable(lbm_solver 
-  main.cpp
+  lbm_solver.cpp
   src/data_compressor.cpp
   src/lbm_gpu.cu
   src/lbm_helpers.cu
@@ -29,3 +29,16 @@ set_target_properties( lbm_solver
                       )
 
 target_link_libraries(lbm_solver PRIVATE CUDA::cudart zip)
+
+
+add_executable(lbm_post_processor 
+  lbm_post_processor.cpp
+  )
+
+target_compile_features(lbm_post_processor  PUBLIC cxx_std_17)
+
+set_target_properties( lbm_post_processor
+                       PROPERTIES CUDA_SEPARABLE_COMPILATION ON
+                      )
+
+target_link_libraries(lbm_post_processor PRIVATE CUDA::cudart zip)
