@@ -17,6 +17,7 @@ public:
   // non blocking if thread available, otherwise waits for free one
   void save_memcpy_data(void *data, size_t size, std::string name);
   u_int32_t busy_threads();
+  void join();
 };
 
 #endif

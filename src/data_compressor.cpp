@@ -65,3 +65,14 @@ u_int32_t DataCompressor::busy_threads() {
       busy++;
   return busy;
 }
+
+void DataCompressor::join() {
+  size_t i = 0;
+  while (i < _threads_busy.size()) {
+    if (_threads_busy[i]) {
+      std::this_thread::sleep_for(_sleep_duration);
+    } else {
+      i++;
+    }
+  }
+}

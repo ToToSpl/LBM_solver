@@ -79,7 +79,6 @@ int main() {
   DataCompressor compressor(11, 50);
   LatticeSpace space = create_cylinder_experiment();
 
-  auto start = std::chrono::high_resolution_clock::now();
   int sampling = 8000;
   for (u_int32_t i = 0; i < sampling; i++) {
     lbm_space_bgk_collision(&space);
@@ -95,11 +94,7 @@ int main() {
                 << compressor.busy_threads() << std::endl;
     }
   }
-  auto stop = std::chrono::high_resolution_clock::now();
-  auto duration =
-      std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
-  std::cout << (float)duration.count() / ((float)sampling * 1000.f) << "s"
-            << std::endl;
+  compressor.join();
 
   return 0;
 }
