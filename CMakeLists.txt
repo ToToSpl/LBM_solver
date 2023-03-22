@@ -41,4 +41,4 @@ set_target_properties( lbm_post_processor
                        PROPERTIES CUDA_SEPARABLE_COMPILATION ON
                       )
 
-target_link_libraries(lbm_post_processor PRIVATE CUDA::cudart zip)
+target_link_libraries(lbm_post_processor PRIVATE CUDA::cudart zip png)

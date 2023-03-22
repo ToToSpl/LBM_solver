@@ -1,13 +1,20 @@
 #include "include/lbm_types.h"
+#include "png.h"
+#include "zip.h"
 #include <bits/stdc++.h>
 #include <filesystem>
 #include <iostream>
+#include <stdlib.h>
 #include <string>
+#include <sys/types.h>
 #include <vector>
 
-#include "zip.h"
-
 #define OUTPUT_DIR "./output"
+
+#define OUTPUT_WIDTH 400
+#define OUTPUT_HEIGHT 100
+#define OUTPUT_DEPTH 100
+#define OUTPUT_SLICE OUTPUT_DEPTH / 2
 
 typedef struct {
   LatticeOutput *lattice;
@@ -58,6 +65,48 @@ LatticeOutputFile read_zip_file(const char *filename) {
   return result;
 }
 
+void create_rgb_image(const char *filename, u_int8_t **buffer, int width,
+                      int height) {
+  FILE *fp = fopen(filename, "wb");
+  if (fp == NULL) {
+    perror("Failed to open file for writing");
+    return;
+  }
+
+  png_structp png_ptr =
+      png_create_write_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
+  if (png_ptr == NULL) {
+    fclose(fp);
+    perror("Failed to create PNG write structure");
+    return;
+  }
+
+  png_infop info_ptr = png_create_info_struct(png_ptr);
+  if (info_ptr == NULL) {
+    png_destroy_write_struct(&png_ptr, NULL);
+    fclose(fp);
+    perror("Failed to create PNG info structure");
+    return;
+  }
+
+  if (setjmp(png_jmpbuf(png_ptr))) {
+    png_destroy_write_struct(&png_ptr, &info_ptr);
+    fclose(fp);
+    perror("Failed to set PNG error handler");
+    return;
+  }
+
+  png_init_io(png_ptr, fp);
+  png_set_IHDR(png_ptr, info_ptr, width, height, 8, PNG_COLOR_TYPE_RGB,
+               PNG_INTERLACE_NONE, PNG_COMPRESSION_TYPE_BASE,
+               PNG_FILTER_TYPE_BASE);
+  png_write_info(png_ptr, info_ptr);
+  png_write_image(png_ptr, (png_bytep *)buffer);
+  png_write_end(png_ptr, info_ptr);
+  png_destroy_write_struct(&png_ptr, &info_ptr);
+  fclose(fp);
+}
+
 bool string_sort(std::string &a, std::string &b) {
   size_t num_a = std::stoll(a.substr(a.find("_") + 1, a.size()));
   size_t num_b = std::stoll(b.substr(b.find("_") + 1, b.size()));
@@ -73,14 +122,67 @@ std::vector<std::string> files_in_output(std::string dir_path) {
   return outputs;
 }
 
+inline size_t index(size_t x, size_t y, size_t z) {
+  return (z * OUTPUT_WIDTH * OUTPUT_HEIGHT) + (y * OUTPUT_WIDTH) + x;
+}
+
 int main() {
 
   auto outputs = files_in_output(OUTPUT_DIR);
 
-  for (const auto &p : outputs) {
-    LatticeOutputFile output = read_zip_file(p.c_str());
-    std::cout << p << "\t" << output.lattice[0].rho << std::endl;
-    free(output.lattice);
+  u_int8_t **rgb_buffer =
+      (u_int8_t **)malloc(OUTPUT_HEIGHT * sizeof(u_int8_t *));
+  for (size_t y = 0; y < OUTPUT_HEIGHT; y++) {
+    rgb_buffer[y] = (u_int8_t *)malloc(OUTPUT_WIDTH * 3 * sizeof(u_int8_t));
+    memset(rgb_buffer[y], 0, OUTPUT_WIDTH * 3 * sizeof(u_int8_t));
+  }
+
+  float cs2 = 1.f / 3.f;
+  size_t z = OUTPUT_SLICE;
+  for (size_t j = 0; j < outputs.size(); j++) {
+    // if (j % 2 != 0)
+    // continue;
+    size_t i = j * 10;
+    auto &p = outputs[j];
+    LatticeOutputFile o = read_zip_file(p.c_str());
+    std::cout << p << "\t" << o.lattice[index(300, 50, 50)].u.x << "\t"
+              << o.lattice[index(300, 50, 50)].u.y << "\t"
+              << o.lattice[index(300, 50, 50)].u.z << "\t"
+              << o.lattice[index(300, 50, 50)].rho << std::endl;
+    for (size_t y = 1; y < OUTPUT_HEIGHT - 1; y++) {
+      for (size_t x = 0; x < OUTPUT_WIDTH - 1; x++) {
+        // float vorticity = o.lattice[index(x - 1, y, z)].u.x -
+        //                   o.lattice[index(x + 1, y, z)].u.x -
+        //                   o.lattice[index(x, y - 1, z)].u.y -
+        //                   o.lattice[index(x, y + 1, z)].u.y -
+        //                   o.lattice[index(x, y, z - 1)].u.z -
+        //                   o.lattice[index(x, y, z + 1)].u.z;
+        // if (vorticity > 0.1)
+        //   vorticity = 0.1;
+        // else if (vorticity < -0.1)
+        //   vorticity = -0.1;
+        //
+        // rgb_buffer[y][3 * x + 1] = 0;
+        // if (vorticity > 0.f) {
+        //   rgb_buffer[y][3 * x + 0] = 0;
+        //   rgb_buffer[y][3 * x + 2] = (u_int8_t)(2550 * vorticity);
+        // } else {
+        //   rgb_buffer[y][3 * x + 0] = (u_int8_t)(2550 * -vorticity);
+        //   rgb_buffer[y][3 * x + 2] = 0;
+        // }
+
+        auto &u = o.lattice[index(x, y, z)].u;
+        float mag = u.x * u.x + u.y * u.y + u.z * u.z;
+        u_int8_t val = (u_int8_t)((255.f * mag) / (2.f * cs2));
+
+        rgb_buffer[y][3 * x + 0] = val;
+        rgb_buffer[y][3 * x + 1] = val;
+        rgb_buffer[y][3 * x + 2] = val;
+      }
+    }
+    std::string filename = "./mag/" + std::to_string(i) + ".png";
+    create_rgb_image(filename.c_str(), rgb_buffer, OUTPUT_WIDTH, OUTPUT_HEIGHT);
+    free(o.lattice);
   }
 
   return 0;
