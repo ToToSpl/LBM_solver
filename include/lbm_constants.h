@@ -3,7 +3,7 @@
 #include "./lbm_gpu.cuh"
 
 // HARDCODED CONSTANTS FOR NOW, TODO CHANGE TO STRUCT
-#define CS2 1.f / 3.f
+#define CS2 (1.f / 3.f)
 #define SIMULATION_DT 1.0f
 #define SIMULATION_TAU 0.7f
 #define SIMULATION_DT_TAU SIMULATION_DT / SIMULATION_TAU

@@ -2,6 +2,7 @@
 #include "png.h"
 #include "zip.h"
 #include <bits/stdc++.h>
+#include <cmath>
 #include <filesystem>
 #include <iostream>
 #include <stdlib.h>
@@ -137,20 +138,20 @@ int main() {
     memset(rgb_buffer[y], 0, OUTPUT_WIDTH * 3 * sizeof(u_int8_t));
   }
 
-  float cs2 = 1.f / 3.f;
+  float cs = std::sqrt(1.f / 3.f);
   size_t z = OUTPUT_SLICE;
   for (size_t j = 0; j < outputs.size(); j++) {
-    // if (j % 2 != 0)
-    // continue;
     size_t i = j * 10;
+    if (i % 20 != 0)
+      continue;
     auto &p = outputs[j];
+    if (p.find(".zip") != p.size() - 4)
+      continue;
+
     LatticeOutputFile o = read_zip_file(p.c_str());
-    std::cout << p << "\t" << o.lattice[index(300, 50, 50)].u.x << "\t"
-              << o.lattice[index(300, 50, 50)].u.y << "\t"
-              << o.lattice[index(300, 50, 50)].u.z << "\t"
-              << o.lattice[index(300, 50, 50)].rho << std::endl;
+    std::cout << p << std::endl;
     for (size_t y = 1; y < OUTPUT_HEIGHT - 1; y++) {
-      for (size_t x = 0; x < OUTPUT_WIDTH - 1; x++) {
+      for (size_t x = 1; x < OUTPUT_WIDTH - 1; x++) {
         // float vorticity = o.lattice[index(x - 1, y, z)].u.x -
         //                   o.lattice[index(x + 1, y, z)].u.x -
         //                   o.lattice[index(x, y - 1, z)].u.y -
@@ -172,8 +173,8 @@ int main() {
         // }
 
         auto &u = o.lattice[index(x, y, z)].u;
-        float mag = u.x * u.x + u.y * u.y + u.z * u.z;
-        u_int8_t val = (u_int8_t)((255.f * mag) / (2.f * cs2));
+        float mag = std::sqrt(u.x * u.x + u.y * u.y + u.z * u.z);
+        u_int8_t val = (u_int8_t)((255.f / cs) * mag);
 
         rgb_buffer[y][3 * x + 0] = val;
         rgb_buffer[y][3 * x + 1] = val;
