@@ -50,11 +50,15 @@ __global__ void gpu_collision_bgk(LatticeNode *space, LatticeInfo space_data) {
     u.y += spd_vecs[i].y * node->f[i];
     u.z += spd_vecs[i].z * node->f[i];
   }
-  if (!(rho > 0.f))
-    return;
-  u.x /= rho;
-  u.y /= rho;
-  u.z /= rho;
+  if (rho > 0.f) {
+    u.x /= rho;
+    u.y /= rho;
+    u.z /= rho;
+  } else {
+    u.x = 0.f;
+    u.y = 0.f;
+    u.z = 0.f;
+  }
 
   float elem3 = u.x * u.x + u.y * u.y + u.z * u.z;
   for (u_int8_t i = 0; i < LBM_SPEED_COUNTS; i++) {
@@ -62,13 +66,11 @@ __global__ void gpu_collision_bgk(LatticeNode *space, LatticeInfo space_data) {
     float elem1 = u.x * spd.x + u.y * spd.y + u.z * spd.z;
     float elem2 = elem1 * elem1;
 
-    float f_eq =
-        spd_weights[i] * rho *
-        (1.f + (elem1 / CS2) + (elem2 / (2 * CS2 * CS2)) - (elem3 / (2 * CS2)));
+    float f_eq = spd_weights[i] * rho *
+                 (1.f + (elem1 / CS2) + (elem2 / (2.f * CS2 * CS2)) -
+                  (elem3 / (2.f * CS2)));
 
-    float omega = -(node->f[i] - f_eq) * SIMULATION_DT_TAU;
-
-    node->f[i] += omega;
+    node->f[i] = node->f[i] - SIMULATION_DT_TAU * (node->f[i] - f_eq);
   }
 }
 

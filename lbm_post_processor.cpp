@@ -1,3 +1,4 @@
+#include "include/lbm_constants.h"
 #include "include/lbm_types.h"
 #include "png.h"
 #include "zip.h"
@@ -150,8 +151,8 @@ int main() {
 
     LatticeOutputFile o = read_zip_file(p.c_str());
     std::cout << p << std::endl;
-    for (size_t y = 1; y < OUTPUT_HEIGHT - 1; y++) {
-      for (size_t x = 1; x < OUTPUT_WIDTH - 1; x++) {
+    for (size_t y = 0; y < OUTPUT_HEIGHT; y++) {
+      for (size_t x = 0; x < OUTPUT_WIDTH; x++) {
         // float vorticity = o.lattice[index(x - 1, y, z)].u.x -
         //                   o.lattice[index(x + 1, y, z)].u.x -
         //                   o.lattice[index(x, y - 1, z)].u.y -
@@ -172,9 +173,15 @@ int main() {
         //   rgb_buffer[y][3 * x + 2] = 0;
         // }
 
+#if 1
         auto &u = o.lattice[index(x, y, z)].u;
         float mag = std::sqrt(u.x * u.x + u.y * u.y + u.z * u.z);
         u_int8_t val = (u_int8_t)((255.f / cs) * mag);
+#else
+        auto &rho = o.lattice[index(x, y, z)].rho;
+        u_int8_t val =
+            (u_int8_t)((255.f / (2.f * (float)LBM_SPEED_COUNTS)) * rho);
+#endif
 
         rgb_buffer[y][3 * x + 0] = val;
         rgb_buffer[y][3 * x + 1] = val;
