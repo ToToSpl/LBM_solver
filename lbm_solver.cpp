@@ -34,15 +34,15 @@ LatticeSpace create_cylinder_experiment() {
       for (int x = 0; x < width; x++) {
         size_t index = (z * width * height) + (y * width) + x;
 
+        // side walls
+        if (y == 0 || y == height - 1 || z == 0 || z == depth - 1)
+          collision[index] = LatticeCollisionEnum::BOUNCE_BACK_STATIC;
         // inlet
-        if (x == 0)
+        else if (x == 0)
           collision[index] = LatticeCollisionEnum::BOUNCE_BACK_SPEED_1;
         // outlet
         else if (x == width - 1)
           collision[index] = LatticeCollisionEnum::BOUNCE_BACK_SPEED_2;
-        // side walls
-        // else if (y == 0 || y == height - 1 || z == 0 || z == depth - 1)
-        //   collision[index] = LatticeCollisionEnum::BOUNCE_BACK_STATIC;
         // cylinder
         else if ((x - cyl_x) * (x - cyl_x) + (y - cyl_y) * (y - cyl_y) < cyl_r2)
           collision[index] = LatticeCollisionEnum::BOUNCE_BACK_STATIC;
