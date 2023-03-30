@@ -70,7 +70,7 @@ __global__ void gpu_collision_bgk(LatticeNode *space, LatticeInfo space_data) {
                  (1.f + (elem1 / CS2) + (elem2 / (2.f * CS2 * CS2)) -
                   (elem3 / (2.f * CS2)));
 
-    node->f[i] = node->f[i] - SIMULATION_DT_TAU * (node->f[i] - f_eq);
+    node->f[i] = node->f[i] - (SIMULATION_DT_TAU * (node->f[i] - f_eq));
   }
 }
 
