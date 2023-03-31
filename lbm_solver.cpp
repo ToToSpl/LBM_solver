@@ -27,7 +27,7 @@ LatticeSpace create_cylinder_experiment() {
       (LatticeNode *)malloc(space.info.total_size * sizeof(LatticeNode));
 
   // define inlet and outlet speed
-  Vec3 u_in = {-0.1f, 0.f, 0.f};
+  Vec3 u_in = {-0.05f, 0.f, 0.f};
   space.info.wall_speeds.s1 = {u_in, InletDir::X_PLUS};  // inlet
   space.info.wall_speeds.s2 = {u_in, InletDir::X_MINUS}; // outlet
 
@@ -38,13 +38,14 @@ LatticeSpace create_cylinder_experiment() {
         for (int i = 0; i < LBM_SPEED_COUNTS; i++) {
           space_cpu[index].f[i] = 1.0f;
         }
+        space_cpu[index].f[1] += 0.5f;
 
-        if (x == 0)
-          collision[index] = LatticeCollisionEnum::BOUNCE_BACK_SPEED_2;
-        else if (x == width - 1)
-          collision[index] = LatticeCollisionEnum::BOUNCE_BACK_SPEED_1;
-        else if (y == 0)
+        if (y == 0 || y == height - 1)
           collision[index] = LatticeCollisionEnum::BOUNCE_BACK_STATIC;
+        // else if (x == 0)
+        //   collision[index] = LatticeCollisionEnum::BOUNCE_BACK_SPEED_1;
+        // else if (x == width - 1)
+        //   collision[index] = LatticeCollisionEnum::BOUNCE_BACK_SPEED_2;
         else if ((x - cyl_x) * (x - cyl_x) + (y - cyl_y) * (y - cyl_y) < cyl_r2)
           collision[index] = LatticeCollisionEnum::BOUNCE_BACK_STATIC;
         else
