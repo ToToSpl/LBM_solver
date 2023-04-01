@@ -51,10 +51,15 @@ __global__ void gpu_collision_bgk(LatticeNode *space, LatticeInfo space_data) {
     u.y += spd_vecs[i].y * node->f[i];
     u.z += spd_vecs[i].z * node->f[i];
   }
-
-  u.x /= rho;
-  u.y /= rho;
-  u.z /= rho;
+  if (rho > 0.f) {
+    u.x /= rho;
+    u.y /= rho;
+    u.z /= rho;
+  } else {
+    u.x = 0.f;
+    u.y = 0.f;
+    u.z = 0.f;
+  }
 
   float elem3 = (u.x * u.x) + (u.y * u.y) + (u.z * u.z);
   for (u_int8_t i = 0; i < LBM_SPEED_COUNTS; i++) {
@@ -62,12 +67,9 @@ __global__ void gpu_collision_bgk(LatticeNode *space, LatticeInfo space_data) {
         u.x * spd_vecs[i].x + u.y * spd_vecs[i].y + u.z * spd_vecs[i].z;
     float elem2 = elem1 * elem1;
 
-    // float f_eq = spd_weights[i] * rho *
-    //              (1.f + (elem1 / CS2) + (elem2 / (2.f * CS2 * CS2)) -
-    //               (elem3 / (2.f * CS2)));
-
     float f_eq = spd_weights[i] * rho *
-                 (1.f + 3.f * elem1 + 4.5f * elem2 - 1.5f * elem3);
+                 (1.f + (elem1 / CS2) + (elem2 / (2.f * CS2 * CS2)) -
+                  (elem3 / (2.f * CS2)));
 
     node->f[i] += -(SIMULATION_DT_TAU) * (node->f[i] - f_eq);
   }
@@ -102,8 +104,10 @@ __global__ void gpu_boundary_condition(LatticeNode *space,
   LatticeWall w;
   if (col == LatticeCollisionEnum::BOUNCE_BACK_SPEED_1)
     w = space_data.wall_speeds.s1;
-  else
+  else if (col == LatticeCollisionEnum::BOUNCE_BACK_SPEED_2)
     w = space_data.wall_speeds.s2;
+  else
+    return;
 
   size_t rho_i;
   switch (w.dir) {
@@ -126,22 +130,25 @@ __global__ void gpu_boundary_condition(LatticeNode *space,
     rho_i = get_index(space_data, x, y, z - 1);
     break;
   }
+
   LatticeNode *neigh = &space[rho_i];
   float rho_b1 = 0.f, rho_b2 = 0.f;
-  for (int i = 0; i < LBM_SPEED_COUNTS; i++) {
+  for (u_int8_t i = 0; i < LBM_SPEED_COUNTS; i++) {
     rho_b1 += node->f[i];
     rho_b2 += neigh->f[i];
   }
-  float rho_w = rho_b2 + 0.5f * (rho_b1 - rho_b2);
+  float rho_w = rho_b1 + 0.5f * (rho_b1 - rho_b2);
+  if (x == 0 && y == 1)
+    printf("%f\t%f\t%f\n", rho_w, rho_b1, rho_b2);
 
   Vec3 spd_vecs[] = LBM_SPEED_VECTORS;
   float spd_weights[] = LBM_SPEED_WEIGHTS;
 
-  for (int i = 1; i < LBM_SPEED_COUNTS; i++) {
+  for (u_int8_t i = 0; i < LBM_SPEED_COUNTS; i++) {
     float dot_v =
         (spd_vecs[i].x * w.u.x + spd_vecs[i].y * w.u.y + spd_vecs[i].z * w.u.z);
     node->f[i] =
-        node_mirror.f[i] - 2.f * rho_w * spd_weights[i] * (dot_v / CS2);
+        node_mirror.f[i] - (2.f * rho_w * spd_weights[i] * (dot_v / CS2));
   }
 }
 
@@ -163,9 +170,6 @@ __global__ void gpu_get_output(LatticeNode *space, LatticeOutput *output,
   u.x /= rho;
   u.y /= rho;
   u.z /= rho;
-
-  // if (x == 2 && y == 50 && z == 50)
-  //   printf("%f\n", u.x);
 
   output[index] = {u, rho};
 }
