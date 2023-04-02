@@ -1,4 +1,3 @@
-#include <cstddef>
 #include <cstdlib>
 #include <cuda.h>
 #include <cuda_runtime.h>
@@ -80,75 +79,85 @@ __global__ void gpu_boundary_condition(LatticeNode *space,
                                        LatticeInfo space_data) {
   KERNEL_ONE_ELEMENT_INIT
   LatticeCollision col = collisions[index];
-  // AUTOMATICALLY INCLUDES WALL_ROLL CONDITION
+
   if (col == LatticeCollisionEnum::NO_COLLISION)
     return;
-
   LatticeNode *node = &space[index];
-  LatticeNode node_mirror;
-  u_int8_t mirrors[] = LBM_COLLISION_MIRROR;
-  for (int i = 0; i < LBM_SPEED_COUNTS; i++)
-    node_mirror.f[i] = node->f[mirrors[i]];
 
+  LatticeNode node_mirror;
+  node_mirror.f[0] = node->f[0];
+  // using data scheme to algorithmically get mirror speeds
+  for (u_int8_t i = 1; i < LBM_SPEED_COUNTS; i++) {
+    // if 1, 3, 5 ... mirror is 2, 4, 6 ...
+    // if 2, 4, 6 ... mirror is 1, 3, 5 ...
+    u_int8_t mirror = i & 0b1 ? i + 1 : i - 1;
+    node_mirror.f[i] = node->f[mirror];
+  }
   if (col == LatticeCollisionEnum::BOUNCE_BACK_STATIC) {
-    // // instead of mirror map we can swap neighbours
-    // for (int i = 1; i < LBM_SPEED_COUNTS - 1; i += 2) {
-    //   float temp = node->f[i];
-    //   node->f[i] = node->f[i + 1];
-    //   node->f[i + 1] = temp;
-    // }
-    *node = node_mirror;
+    // 0 index should be the same
+    for (u_int8_t i = 1; i < LBM_SPEED_COUNTS; i++)
+      node->f[i] = node_mirror.f[i];
     return;
   }
 
-  LatticeWall w;
-  if (col == LatticeCollisionEnum::BOUNCE_BACK_SPEED_1)
-    w = space_data.wall_speeds.s1;
-  else if (col == LatticeCollisionEnum::BOUNCE_BACK_SPEED_2)
-    w = space_data.wall_speeds.s2;
-  else
+  // bounce back speed case
+  LatticeWall wall;
+  switch (col) {
+  case LatticeCollisionEnum::BOUNCE_BACK_SPEED_1:
+    wall = space_data.wall_speeds.s1;
+    break;
+  case LatticeCollisionEnum::BOUNCE_BACK_SPEED_2:
+    wall = space_data.wall_speeds.s2;
+    break;
+  default:
     return;
+  }
 
-  size_t rho_i;
-  switch (w.dir) {
+  size_t index_neigh;
+  switch (wall.dir) {
   case InletDir::X_PLUS:
-    rho_i = get_index(space_data, x + 1, y, z);
+    index_neigh = get_index(space_data, x + 1, y, z);
     break;
   case InletDir::X_MINUS:
-    rho_i = get_index(space_data, x - 1, y, z);
+    index_neigh = get_index(space_data, x - 1, y, z);
     break;
   case InletDir::Y_PLUS:
-    rho_i = get_index(space_data, x, y + 1, z);
+    index_neigh = get_index(space_data, x, y + 1, z);
     break;
   case InletDir::Y_MINUS:
-    rho_i = get_index(space_data, x, y - 1, z);
+    index_neigh = get_index(space_data, x, y - 1, z);
     break;
   case InletDir::Z_PLUS:
-    rho_i = get_index(space_data, x, y, z + 1);
+    index_neigh = get_index(space_data, x, y, z + 1);
     break;
   case InletDir::Z_MINUS:
-    rho_i = get_index(space_data, x, y, z - 1);
+    index_neigh = get_index(space_data, x, y, z - 1);
     break;
+  default:
+    return;
   }
 
-  LatticeNode *neigh = &space[rho_i];
+  u_int8_t mirrors_i[] = LBM_COLLISION_MIRROR;
+
+  LatticeNode *node_neigh = &space[index_neigh];
   float rho_b1 = 0.f, rho_b2 = 0.f;
   for (u_int8_t i = 0; i < LBM_SPEED_COUNTS; i++) {
     rho_b1 += node->f[i];
-    rho_b2 += neigh->f[i];
+    rho_b2 += node_neigh->f[i];
   }
-  float rho_w = rho_b1 + 0.5f * (rho_b1 - rho_b2);
-  if (x == 0 && y == 1)
-    printf("%f\t%f\t%f\n", rho_w, rho_b1, rho_b2);
+  float rho_w = rho_b1 + (0.5f * (rho_b2 - rho_b1));
 
-  Vec3 spd_vecs[] = LBM_SPEED_VECTORS;
-  float spd_weights[] = LBM_SPEED_WEIGHTS;
-
+  Vec3 speeds[] = LBM_SPEED_VECTORS;
+  float weights[] = LBM_SPEED_WEIGHTS;
   for (u_int8_t i = 0; i < LBM_SPEED_COUNTS; i++) {
-    float dot_v =
-        (spd_vecs[i].x * w.u.x + spd_vecs[i].y * w.u.y + spd_vecs[i].z * w.u.z);
+    float dot = (speeds[i].x * wall.u.x) + (speeds[i].y * wall.u.y) +
+                (speeds[i].z * wall.u.z);
+
+    // THIS IS CORRECT BUT IT DOES NOT WORK
+    // node->f[i] = node_mirror.f[i] - (2.f * rho_w * weights[i] * (dot / CS2));
+    // WARNING: THIS IS INCORRECT BUT IT WORKS?!?!?
     node->f[i] =
-        node_mirror.f[i] - (2.f * rho_w * spd_weights[i] * (dot_v / CS2));
+        node->f[mirrors_i[i]] - (2.f * rho_w * weights[i] * (dot / CS2));
   }
 }
 

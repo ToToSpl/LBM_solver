@@ -39,6 +39,7 @@ LatticeSpace create_cylinder_experiment() {
         for (int i = 0; i < LBM_SPEED_COUNTS; i++) {
           space_cpu[index].f[i] = 1.0f;
         }
+        // space_cpu[index].f[1] += 0.5f;
 
         if (y == 0 || y == height - 1)
           collision[index] = LatticeCollisionEnum::BOUNCE_BACK_STATIC;
@@ -46,9 +47,8 @@ LatticeSpace create_cylinder_experiment() {
           collision[index] = LatticeCollisionEnum::BOUNCE_BACK_SPEED_1;
         else if (x == width - 1)
           collision[index] = LatticeCollisionEnum::BOUNCE_BACK_SPEED_2;
-        // else if ((x - cyl_x) * (x - cyl_x) + (y - cyl_y) * (y - cyl_y) <
-        // cyl_r2)
-        //   collision[index] = LatticeCollisionEnum::BOUNCE_BACK_STATIC;
+        else if ((x - cyl_x) * (x - cyl_x) + (y - cyl_y) * (y - cyl_y) < cyl_r2)
+          collision[index] = LatticeCollisionEnum::BOUNCE_BACK_STATIC;
         else
           collision[index] = LatticeCollisionEnum::NO_COLLISION;
 
@@ -97,8 +97,8 @@ int main() {
   DataCompressor compressor(11, 50);
   LatticeSpace space = create_cylinder_experiment();
 
+  // int sampling = 5;
   int sampling = 8000;
-  // int sampling = 60;
   for (u_int32_t i = 0; i < sampling; i++) {
     lbm_space_bgk_collision(&space);
     lbm_space_boundary_condition(&space);
