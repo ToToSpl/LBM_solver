@@ -85,7 +85,6 @@ __global__ void gpu_boundary_condition(LatticeNode *space,
   LatticeNode *node = &space[index];
 
   LatticeNode node_mirror;
-  node_mirror.f[0] = node->f[0];
   // using data scheme to algorithmically get mirror speeds
   for (u_int8_t i = 1; i < LBM_SPEED_COUNTS; i++) {
     // if 1, 3, 5 ... mirror is 2, 4, 6 ...
@@ -99,6 +98,7 @@ __global__ void gpu_boundary_condition(LatticeNode *space,
       node->f[i] = node_mirror.f[i];
     return;
   }
+  node_mirror.f[0] = node->f[0];
 
   // bounce back speed case
   LatticeWall wall;
@@ -113,51 +113,19 @@ __global__ void gpu_boundary_condition(LatticeNode *space,
     return;
   }
 
-  size_t index_neigh;
-  switch (wall.dir) {
-  case InletDir::X_PLUS:
-    index_neigh = get_index(space_data, x + 1, y, z);
-    break;
-  case InletDir::X_MINUS:
-    index_neigh = get_index(space_data, x - 1, y, z);
-    break;
-  case InletDir::Y_PLUS:
-    index_neigh = get_index(space_data, x, y + 1, z);
-    break;
-  case InletDir::Y_MINUS:
-    index_neigh = get_index(space_data, x, y - 1, z);
-    break;
-  case InletDir::Z_PLUS:
-    index_neigh = get_index(space_data, x, y, z + 1);
-    break;
-  case InletDir::Z_MINUS:
-    index_neigh = get_index(space_data, x, y, z - 1);
-    break;
-  default:
-    return;
-  }
-
-  u_int8_t mirrors_i[] = LBM_COLLISION_MIRROR;
-
-  LatticeNode *node_neigh = &space[index_neigh];
-  float rho_b1 = 0.f, rho_b2 = 0.f;
-  for (u_int8_t i = 0; i < LBM_SPEED_COUNTS; i++) {
-    rho_b1 += node->f[i];
-    rho_b2 += node_neigh->f[i];
-  }
-  float rho_w = rho_b1 + (0.5f * (rho_b2 - rho_b1));
-
+  // u_int8_t mirrors_i[] = LBM_COLLISION_MIRROR;
   Vec3 speeds[] = LBM_SPEED_VECTORS;
   float weights[] = LBM_SPEED_WEIGHTS;
+
+  float rho_b1 = 0.f;
+  for (u_int8_t i = 0; i < LBM_SPEED_COUNTS; i++) {
+    rho_b1 += node->f[i];
+  }
+
   for (u_int8_t i = 0; i < LBM_SPEED_COUNTS; i++) {
     float dot = (speeds[i].x * wall.u.x) + (speeds[i].y * wall.u.y) +
                 (speeds[i].z * wall.u.z);
-
-    // THIS IS CORRECT BUT IT DOES NOT WORK
-    // node->f[i] = node_mirror.f[i] - (2.f * rho_w * weights[i] * (dot / CS2));
-    // WARNING: THIS IS INCORRECT BUT IT WORKS?!?!?
-    node->f[i] =
-        node->f[mirrors_i[i]] - (2.f * rho_w * weights[i] * (dot / CS2));
+    node->f[i] = node_mirror.f[i] - (2.f * weights[i] * rho_b1 * (dot / CS2));
   }
 }
 
@@ -166,9 +134,10 @@ __global__ void gpu_get_output(LatticeNode *space, LatticeOutput *output,
   KERNEL_ONE_ELEMENT_INIT
   LatticeNode *node = &space[index];
 
-  Vec3 spd_vecs[] = LBM_SPEED_VECTORS;
   Vec3 u = {0.f, 0.f, 0.f};
   float rho = 0.f;
+
+  Vec3 spd_vecs[] = LBM_SPEED_VECTORS;
 
   for (int i = 0; i < LBM_SPEED_COUNTS; i++) {
     rho += node->f[i];
