@@ -7,36 +7,75 @@
 #define SIMULATION_TAU 0.7f
 #define SIMULATION_DT_TAU (SIMULATION_DT / SIMULATION_TAU)
 
-// #define D3Q27_VERSION
-#define D2Q9_VERSION
+#define D3Q27_VERSION
+// #define D2Q9_VERSION
 
 #ifdef D3Q27_VERSION
 // D3Q27 space see p.83 for more info
 #define LBM_SPEED_COUNTS 27
 
-#define LBM_SPEED_VECTORS                                                      \
-  {                                                                            \
-    {0.f, 0.f, 0.f}, {1.f, 0.f, 0.f}, {-1.f, 0.f, 0.f}, {0.f, 1.f, 0.f},       \
-        {0.f, -1.f, 0.f}, {0.f, 0.f, 1.f}, {0.f, 0.f, -1.f}, {1.f, 1.f, 0.f},  \
-        {-1.f, -1.f, 0.f}, {1.f, 0.f, 1.f}, {-1.f, 0.f, -1.f},                 \
-        {0.f, 1.f, 1.f}, {0.f, -1.f, -1.f}, {1.f, -1.f, 0.f},                  \
-        {-1.f, 1.f, 0.f}, {1.f, 0.f, -1.f}, {-1.f, 0.f, 1.f},                  \
-        {0.f, 1.f, -1.f}, {0.f, -1.f, 1.f}, {1.f, 1.f, 1.f},                   \
-        {-1.f, -1.f, -1.f}, {1.f, 1.f, -1.f}, {-1.f, -1.f, 1.f},               \
-        {1.f, -1.f, 1.f}, {-1.f, 1.f, -1.f}, {-1.f, 1.f, 1.f}, {               \
-      1.f, -1.f, -1.f                                                          \
-    }                                                                          \
-  }
+// clang-format off
+#define LBM_SPEED_VECTORS                                                       \
+  {                                                                             \
+    {0.f, 0.f, 0.f},                                                            \
+    {1.f, 0.f, 0.f},                                                            \
+    {-1.f, 0.f, 0.f},                                                           \
+    {0.f, 1.f, 0.f},                                                            \
+    {0.f, -1.f, 0.f},                                                           \
+    {0.f, 0.f, 1.f},                                                            \
+    {0.f, 0.f, -1.f},                                                           \
+    {1.f, 1.f, 0.f},                                                            \
+    {-1.f, -1.f, 0.f},                                                          \
+    {1.f, 0.f, 1.f},                                                            \
+    {-1.f, 0.f, -1.f},                                                          \
+    {0.f, 1.f, 1.f},                                                            \
+    {0.f, -1.f, -1.f},                                                          \
+    {1.f, -1.f, 0.f},                                                           \
+    {-1.f, 1.f, 0.f},                                                           \
+    {1.f, 0.f, -1.f},                                                           \
+    {-1.f, 0.f, 1.f},                                                           \
+    {0.f, 1.f, -1.f},                                                           \
+    {0.f, -1.f, 1.f},                                                           \
+    {1.f, 1.f, 1.f},                                                            \
+    {-1.f, -1.f, -1.f},                                                         \
+    {1.f, 1.f, -1.f},                                                           \
+    {-1.f, -1.f, 1.f},                                                          \
+    {1.f, -1.f, 1.f},                                                           \
+    {-1.f, 1.f, -1.f},                                                          \
+    {-1.f, 1.f, 1.f},                                                           \
+    {1.f, -1.f, -1.f}}
 
-#define LBM_SPEED_WEIGHTS                                                      \
-  {                                                                            \
-    8.f / 27.f, 2.f / 27.f, 2.f / 27.f, 2.f / 27.f, 2.f / 27.f, 2.f / 27.f,    \
-        2.f / 27.f, 1.f / 54.f, 1.f / 54.f, 1.f / 54.f, 1.f / 54.f,            \
-        1.f / 54.f, 1.f / 54.f, 1.f / 54.f, 1.f / 54.f, 1.f / 54.f,            \
-        1.f / 54.f, 1.f / 54.f, 1.f / 54.f, 1.f / 216.f, 1.f / 216.f,          \
-        1.f / 216.f, 1.f / 216.f, 1.f / 216.f, 1.f / 216.f, 1.f / 216.f,       \
-        1.f / 216.f,                                                           \
+#define LBM_SPEED_WEIGHTS                                                       \
+  {                                                                             \
+    8.f / 27.f,                                                                 \
+    2.f / 27.f,                                                                 \
+    2.f / 27.f,                                                                 \
+    2.f / 27.f,                                                                 \
+    2.f / 27.f,                                                                 \
+    2.f / 27.f,                                                                 \
+    2.f / 27.f,                                                                 \
+    1.f / 54.f,                                                                 \
+    1.f / 54.f,                                                                 \
+    1.f / 54.f,                                                                 \
+    1.f / 54.f,                                                                 \
+    1.f / 54.f,                                                                 \
+    1.f / 54.f,                                                                 \
+    1.f / 54.f,                                                                 \
+    1.f / 54.f,                                                                 \
+    1.f / 54.f,                                                                 \
+    1.f / 54.f,                                                                 \
+    1.f / 54.f,                                                                 \
+    1.f / 54.f,                                                                 \
+    1.f / 216.f,                                                                \
+    1.f / 216.f,                                                                \
+    1.f / 216.f,                                                                \
+    1.f / 216.f,                                                                \
+    1.f / 216.f,                                                                \
+    1.f / 216.f,                                                                \
+    1.f / 216.f,                                                                \
+    1.f / 216.f,                                                                \
   }
+// clang-format on
 
 // indecies which needs to be streamed in given direction
 #define LBM_STREAM_X_PLUS                                                      \
@@ -65,20 +104,33 @@
 
 #define LBM_SPEED_COUNTS 9
 
-#define LBM_SPEED_VECTORS                                                      \
-  {                                                                            \
-    {0.f, 0.f, 0.f}, {1.f, 0.f, 0.f}, {-1.f, 0.f, 0.f}, {0.f, 1.f, 0.f},       \
-        {0.f, -1.f, 0.f}, {1.f, 1.f, 0.f}, {-1.f, -1.f, 0.f},                  \
-        {1.f, -1.f, 0.f}, {                                                    \
-      -1.f, 1.f, 0.f                                                           \
-    }                                                                          \
+// clang-format off
+#define LBM_SPEED_VECTORS                                                       \
+  {                                                                             \
+    {0.f, 0.f, 0.f},                                                            \
+    {1.f, 0.f, 0.f},                                                            \
+    {-1.f, 0.f, 0.f},                                                           \
+    {0.f, 1.f, 0.f},                                                            \
+    {0.f, -1.f, 0.f},                                                           \
+    {1.f, 1.f, 0.f},                                                            \
+    {-1.f, -1.f, 0.f},                                                          \
+    {1.f, -1.f, 0.f},                                                           \
+    {-1.f, 1.f, 0.f}                                                            \
   }
 
-#define LBM_SPEED_WEIGHTS                                                      \
-  {                                                                            \
-    4.f / 9.f, 1.f / 9.f, 1.f / 9.f, 1.f / 9.f, 1.f / 9.f, 1.f / 36.f,         \
-        1.f / 36.f, 1.f / 36.f, 1.f / 36.f,                                    \
+#define LBM_SPEED_WEIGHTS                                                       \
+  {                                                                             \
+    4.f / 9.f,                                                                  \
+    1.f / 9.f,                                                                  \
+    1.f / 9.f,                                                                  \
+    1.f / 9.f,                                                                  \
+    1.f / 9.f,                                                                  \
+    1.f / 36.f,                                                                 \
+    1.f / 36.f,                                                                 \
+    1.f / 36.f,                                                                 \
+    1.f / 36.f,                                                                 \
   }
+// clang-format on
 
 // indecies which needs to be streamed in given direction
 #define LBM_STREAM_X_PLUS                                                      \
