@@ -148,6 +148,7 @@
 
 #define LBM_COLLISION_MIRROR                                                   \
   { 0, 2, 1, 4, 3, 6, 5, 8, 7 }
+
 #endif
 
 #endif

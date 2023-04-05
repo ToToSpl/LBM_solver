@@ -17,7 +17,7 @@
 
 #define OUTPUT_WIDTH 400
 #define OUTPUT_HEIGHT 100
-#define OUTPUT_DEPTH 1
+#define OUTPUT_DEPTH 100
 #define OUTPUT_SLICE OUTPUT_DEPTH / 2
 
 typedef struct {
