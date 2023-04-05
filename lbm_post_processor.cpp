@@ -11,6 +11,8 @@
 #include <sys/types.h>
 #include <vector>
 
+#include "src/colors.h"
+
 #define OUTPUT_DIR "./output"
 
 #define OUTPUT_WIDTH 400
@@ -153,39 +155,15 @@ int main() {
     std::cout << p << std::endl;
     for (size_t y = 0; y < OUTPUT_HEIGHT; y++) {
       for (size_t x = 0; x < OUTPUT_WIDTH; x++) {
-        // float vorticity = o.lattice[index(x - 1, y, z)].u.x -
-        //                   o.lattice[index(x + 1, y, z)].u.x -
-        //                   o.lattice[index(x, y - 1, z)].u.y -
-        //                   o.lattice[index(x, y + 1, z)].u.y -
-        //                   o.lattice[index(x, y, z - 1)].u.z -
-        //                   o.lattice[index(x, y, z + 1)].u.z;
-        // if (vorticity > 0.1)
-        //   vorticity = 0.1;
-        // else if (vorticity < -0.1)
-        //   vorticity = -0.1;
-        //
-        // rgb_buffer[y][3 * x + 1] = 0;
-        // if (vorticity > 0.f) {
-        //   rgb_buffer[y][3 * x + 0] = 0;
-        //   rgb_buffer[y][3 * x + 2] = (u_int8_t)(2550 * vorticity);
-        // } else {
-        //   rgb_buffer[y][3 * x + 0] = (u_int8_t)(2550 * -vorticity);
-        //   rgb_buffer[y][3 * x + 2] = 0;
-        // }
-
-#if 1
         auto &u = o.lattice[index(x, y, z)].u;
-        float mag = std::sqrt(u.x * u.x + u.y * u.y + u.z * u.z);
-        u_int8_t val = (u_int8_t)((255.f / cs) * mag);
-#else
-        auto &rho = o.lattice[index(x, y, z)].rho;
-        u_int8_t val =
-            (u_int8_t)((255.f / (2.f * (float)LBM_SPEED_COUNTS)) * rho);
-#endif
+        float mag =
+            std::sqrt(u.x * u.x + u.y * u.y + u.z * u.z) / std::sqrt(CS2);
+        float head = atan2(u.y, u.x);
+        rgb color = hsv2rgb({head, 1.f, mag});
 
-        rgb_buffer[y][3 * x + 0] = val;
-        rgb_buffer[y][3 * x + 1] = val;
-        rgb_buffer[y][3 * x + 2] = val;
+        rgb_buffer[y][3 * x + 0] = (u_int8_t)(255.f * color.r);
+        rgb_buffer[y][3 * x + 1] = (u_int8_t)(255.f * color.g);
+        rgb_buffer[y][3 * x + 2] = (u_int8_t)(255.f * color.b);
       }
     }
     std::string filename = "./mag/" + std::to_string(i) + ".png";

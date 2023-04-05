@@ -33,6 +33,7 @@ target_link_libraries(lbm_solver PRIVATE CUDA::cudart zip)
 
 add_executable(lbm_post_processor 
   lbm_post_processor.cpp
+  src/colors.cpp
   )
 
 target_compile_features(lbm_post_processor  PUBLIC cxx_std_17)
