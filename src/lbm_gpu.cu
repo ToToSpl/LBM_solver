@@ -12,8 +12,7 @@
 
 __device__ inline size_t get_index(LatticeInfo &space_data, size_t x, size_t y,
                                    size_t z) {
-  return (z * space_data.x_size * space_data.y_size) + (y * space_data.x_size) +
-         x;
+  return ((z * space_data.y_size + y) * space_data.x_size) + x;
 }
 
 // Standard procedure, check if core is in space and initialize x,y,z and index
@@ -50,15 +49,9 @@ __global__ void gpu_collision_bgk(LatticeNode *space, LatticeInfo space_data) {
     u.y += spd_vecs[i].y * node->f[i];
     u.z += spd_vecs[i].z * node->f[i];
   }
-  if (rho > 0.f) {
-    u.x /= rho;
-    u.y /= rho;
-    u.z /= rho;
-  } else {
-    u.x = 0.f;
-    u.y = 0.f;
-    u.z = 0.f;
-  }
+  u.x /= rho;
+  u.y /= rho;
+  u.z /= rho;
 
   float elem3 = (u.x * u.x) + (u.y * u.y) + (u.z * u.z);
   for (u_int8_t i = 0; i < LBM_SPEED_COUNTS; i++) {
@@ -462,15 +455,15 @@ void lbm_space_stream(LatticeSpace *space) {
   gpuErrchk(cudaPeekAtLastError());
   gpuErrchk(cudaDeviceSynchronize());
 
-  // gpu_stream_z_plus<<<plane_xy.gridSize, plane_xy.blockSize>>>(
-  //     space->device_data, space->info);
-  // gpuErrchk(cudaPeekAtLastError());
-  // gpuErrchk(cudaDeviceSynchronize());
-  //
-  // gpu_stream_z_minus<<<plane_xy.gridSize, plane_xy.blockSize>>>(
-  //     space->device_data, space->info);
-  // gpuErrchk(cudaPeekAtLastError());
-  // gpuErrchk(cudaDeviceSynchronize());
+  gpu_stream_z_plus<<<plane_xy.gridSize, plane_xy.blockSize>>>(
+      space->device_data, space->info);
+  gpuErrchk(cudaPeekAtLastError());
+  gpuErrchk(cudaDeviceSynchronize());
+
+  gpu_stream_z_minus<<<plane_xy.gridSize, plane_xy.blockSize>>>(
+      space->device_data, space->info);
+  gpuErrchk(cudaPeekAtLastError());
+  gpuErrchk(cudaDeviceSynchronize());
 }
 
 LatticeNode *lbm_space_copy_to_host(LatticeSpace *space) {
