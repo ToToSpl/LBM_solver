@@ -455,6 +455,7 @@ void lbm_space_stream(LatticeSpace *space) {
   gpuErrchk(cudaPeekAtLastError());
   gpuErrchk(cudaDeviceSynchronize());
 
+#ifdef D3Q27_VERSION
   gpu_stream_z_plus<<<plane_xy.gridSize, plane_xy.blockSize>>>(
       space->device_data, space->info);
   gpuErrchk(cudaPeekAtLastError());
@@ -464,6 +465,7 @@ void lbm_space_stream(LatticeSpace *space) {
       space->device_data, space->info);
   gpuErrchk(cudaPeekAtLastError());
   gpuErrchk(cudaDeviceSynchronize());
+#endif
 }
 
 LatticeNode *lbm_space_copy_to_host(LatticeSpace *space) {

@@ -4,11 +4,11 @@
 // HARDCODED CONSTANTS FOR NOW, TODO CHANGE TO STRUCT
 #define CS2 (1.f / 3.f)
 #define SIMULATION_DT 1.0f
-#define SIMULATION_TAU 0.7f
+#define SIMULATION_TAU 0.6f
 #define SIMULATION_DT_TAU (SIMULATION_DT / SIMULATION_TAU)
 
-#define D3Q27_VERSION
-// #define D2Q9_VERSION
+// #define D3Q27_VERSION
+#define D2Q9_VERSION
 
 #ifdef D3Q27_VERSION
 // D3Q27 space see p.83 for more info

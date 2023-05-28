@@ -15,9 +15,9 @@
 
 #define OUTPUT_DIR "./output"
 
-#define OUTPUT_WIDTH 400
-#define OUTPUT_HEIGHT 100
-#define OUTPUT_DEPTH 100
+#define OUTPUT_WIDTH 800
+#define OUTPUT_HEIGHT 400
+#define OUTPUT_DEPTH 1
 #define OUTPUT_SLICE OUTPUT_DEPTH / 2
 
 typedef struct {
@@ -144,9 +144,9 @@ int main() {
   float cs = std::sqrt(1.f / 3.f);
   size_t z = OUTPUT_SLICE;
   for (size_t j = 0; j < outputs.size(); j++) {
-    size_t i = j * 10;
-    if (i % 20 != 0)
-      continue;
+    size_t i = j * 100;
+    // if (i % 20 != 0)
+    //   continue;
     auto &p = outputs[j];
     if (p.find(".zip") != p.size() - 4)
       continue;
@@ -159,7 +159,8 @@ int main() {
         float mag =
             std::sqrt(u.x * u.x + u.y * u.y + u.z * u.z) / std::sqrt(CS2);
         float head = atan2(u.y, u.x);
-        rgb color = hsv2rgb({head, 1.f, mag});
+        // rgb color = hsv2rgb({head, 1.f, mag});
+        rgb color = {mag, mag, mag};
 
         rgb_buffer[y][3 * x + 0] = (u_int8_t)(255.f * color.r);
         rgb_buffer[y][3 * x + 1] = (u_int8_t)(255.f * color.g);
