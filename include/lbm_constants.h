@@ -146,8 +146,17 @@
 #define LBM_STREAM_Z_MINUS                                                     \
   { 0 }
 
-#define LBM_COLLISION_MIRROR                                                   \
-  { 0, 2, 1, 4, 3, 6, 5, 8, 7 }
+// Mirror along x plane
+#define LBM_BOUNCE_BACK_MIRROR_X                                               \
+  { 0, 1, 2, 4, 3, 7, 8, 5, 6 }
+
+// Mirror along y plane
+#define LBM_BOUNCE_BACK_MIRROR_Y                                               \
+  { 0, 2, 1, 3, 4, 8, 7, 6, 5 }
+
+// Mirror along z plane, do nothing
+#define LBM_BOUNCE_BACK_MIRROR_Z                                               \
+  { 0, 1, 2, 3, 4, 5, 6, 7, 8 }
 
 #endif
 

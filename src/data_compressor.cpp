@@ -46,7 +46,6 @@ void DataCompressor::save_memcpy_data(void *data, size_t size,
 
       _threads_busy[i] = true;
       std::thread t([this, i, data_copied, size, name] {
-        std::this_thread::sleep_for(_sleep_duration);
         compress_to_file(data_copied, size, name);
         free(data_copied);
         _threads_busy[i] = false;

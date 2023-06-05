@@ -78,6 +78,36 @@ __global__ void gpu_boundary_condition(LatticeNode *space,
   LatticeNode *node = &space[index];
 
   LatticeNode node_mirror;
+
+  if (col == LatticeCollisionEnum::BOUNCE_BACK_MIRROR_X) {
+    u_int8_t mirror[] = LBM_BOUNCE_BACK_MIRROR_X;
+    for (u_int8_t i = 1; i < LBM_SPEED_COUNTS; i++)
+      node_mirror.f[i] = node->f[mirror[i]];
+    for (u_int8_t i = 1; i < LBM_SPEED_COUNTS; i++)
+      node->f[i] = node_mirror.f[i];
+    return;
+  }
+
+  if (col == LatticeCollisionEnum::BOUNCE_BACK_MIRROR_Y) {
+    u_int8_t mirror[] = LBM_BOUNCE_BACK_MIRROR_Y;
+    for (u_int8_t i = 1; i < LBM_SPEED_COUNTS; i++)
+      node_mirror.f[i] = node->f[mirror[i]];
+    for (u_int8_t i = 1; i < LBM_SPEED_COUNTS; i++)
+      node->f[i] = node_mirror.f[i];
+    for (u_int8_t i = 1; i < LBM_SPEED_COUNTS; i++)
+      node->f[i] = node_mirror.f[i];
+    return;
+  }
+
+  if (col == LatticeCollisionEnum::BOUNCE_BACK_MIRROR_Z) {
+    u_int8_t mirror[] = LBM_BOUNCE_BACK_MIRROR_Z;
+    for (u_int8_t i = 1; i < LBM_SPEED_COUNTS; i++)
+      node_mirror.f[i] = node->f[mirror[i]];
+    for (u_int8_t i = 1; i < LBM_SPEED_COUNTS; i++)
+      node->f[i] = node_mirror.f[i];
+    return;
+  }
+
   // using data scheme to algorithmically get mirror speeds
   for (u_int8_t i = 1; i < LBM_SPEED_COUNTS; i++) {
     // if 1, 3, 5 ... mirror is 2, 4, 6 ...

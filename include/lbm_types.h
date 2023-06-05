@@ -10,7 +10,12 @@ enum LatticeCollisionEnum {
   // for now supports only two different speeds
   BOUNCE_BACK_SPEED_1 = 2, // collision with moving wall, speed set in struct
   BOUNCE_BACK_SPEED_2 = 3, // collision with moving wall, speed set in struct
+  // collision with mirror plane
+  BOUNCE_BACK_MIRROR_X = 4,
+  BOUNCE_BACK_MIRROR_Y = 5,
+  BOUNCE_BACK_MIRROR_Z = 6,
 };
+
 typedef u_int8_t LatticeCollision;
 // D3Q27
 // for directions and weights see p.90
