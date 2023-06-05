@@ -91,12 +91,22 @@
 #define LBM_STREAM_Z_MINUS                                                     \
   { 6, 10, 12, 15, 17, 20, 21, 24, 26 }
 
-// TODO: can also be described as: odd -> index+1, even -> index-1. check which
-// is faster
-#define LBM_COLLISION_MIRROR                                                   \
+#define LBM_BOUNCE_BACK_MIRROR_XZ                                              \
   {                                                                            \
-    0, 2, 1, 4, 3, 6, 5, 8, 7, 10, 9, 12, 11, 14, 13, 16, 15, 18, 17, 20, 19,  \
-        22, 21, 24, 23, 26, 25                                                 \
+    0, 1, 2, 4, 3, 5, 6, 13, 14, 9, 10, 18, 17, 7, 8, 15, 16, 12, 11, 23, 24,  \
+        26, 25, 19, 20, 22, 21                                                 \
+  }
+
+#define LBM_BOUNCE_BACK_MIRROR_YZ                                              \
+  {                                                                            \
+    0, 2, 1, 3, 4, 5, 6, 14, 13, 16, 15, 11, 12, 8, 7, 10, 9, 17, 18, 25, 26,  \
+        24, 23, 22, 21, 19, 20                                                 \
+  }
+
+#define LBM_BOUNCE_BACK_MIRROR_XY                                              \
+  {                                                                            \
+    0, 1, 2, 3, 4, 6, 5, 7, 8, 15, 16, 17, 18, 13, 14, 9, 10, 11, 12, 21, 22,  \
+        19, 20, 26, 25, 24, 23                                                 \
   }
 
 #endif
@@ -146,16 +156,16 @@
 #define LBM_STREAM_Z_MINUS                                                     \
   { 0 }
 
-// Mirror along x plane
-#define LBM_BOUNCE_BACK_MIRROR_X                                               \
+// Mirror along xz plane
+#define LBM_BOUNCE_BACK_MIRROR_XZ                                              \
   { 0, 1, 2, 4, 3, 7, 8, 5, 6 }
 
-// Mirror along y plane
-#define LBM_BOUNCE_BACK_MIRROR_Y                                               \
+// Mirror along yz plane
+#define LBM_BOUNCE_BACK_MIRROR_YZ                                              \
   { 0, 2, 1, 3, 4, 8, 7, 6, 5 }
 
 // Mirror along z plane, do nothing
-#define LBM_BOUNCE_BACK_MIRROR_Z                                               \
+#define LBM_BOUNCE_BACK_MIRROR_XY                                              \
   { 0, 1, 2, 3, 4, 5, 6, 7, 8 }
 
 #endif
