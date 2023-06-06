@@ -14,6 +14,7 @@ endif()
 include_directories("${CUDA_INCLUDE_DIRS}")
 
 set(CMAKE_CXX_FLAGS_RELEASE "-O3")
+set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -O3")
 
 add_executable(lbm_solver 
   lbm_solver.cpp
