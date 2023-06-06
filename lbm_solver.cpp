@@ -18,7 +18,7 @@ inline size_t get_index(size_t x, size_t y, size_t z, size_t w, size_t h) {
 }
 
 LatticeSpace create_cylinder_experiment() {
-  size_t width = 800, height = 400, depth = 1;
+  size_t width = 800, height = 400, depth = 100;
   size_t cyl_x = width / 4, cyl_y = height / 2,
          cyl_r2 = (height / 8) * (height / 8);
   LatticeSpace space;
@@ -34,8 +34,9 @@ LatticeSpace create_cylinder_experiment() {
 
   // define inlet and outlet speed
   {
-    Vec3 u_in = {-0.06f, 0.0f, 0.0f};
-    Vec3 u_out = {0.06f, 0.0f, 0.0f};
+    Vec3 u_in = {-0.06, 0.0f, 0.0f};
+    Vec3 u_out = {0.06, 0.0f, 0.0f};
+
     space.info.wall_speeds.s1 = {u_in, InletDir::X_PLUS};
     space.info.wall_speeds.s2 = {u_out, InletDir::X_MINUS};
   }
@@ -45,16 +46,20 @@ LatticeSpace create_cylinder_experiment() {
       for (int x = 0; x < width; x++) {
         size_t index = get_index(x, y, z, width, height);
         for (int i = 0; i < LBM_SPEED_COUNTS; i++) {
-          space_cpu[index].f[i] = 0.1111111111f;
+          space_cpu[index].f[i] = 1.0f / LBM_SPEED_COUNTS;
         }
         space_cpu[index].f[1] += 0.06 / 2.0;
         space_cpu[index].f[2] -= 0.06 / 2.0;
 
+        float r = z % 20 < 10 ? (55.0 * 55.0) : (45.0 * 45.0);
+
         if (y == 0 || y == height - 1)
           collision[index] = LatticeCollisionEnum::BOUNCE_BACK_STATIC;
+        else if (z == 0 || z == depth - 1)
+          collision[index] = LatticeCollisionEnum::WALL_ROLL;
         else if (x == 0)
           collision[index] = LatticeCollisionEnum::BOUNCE_BACK_SPEED_1;
-        else if ((x - cyl_x) * (x - cyl_x) + (y - cyl_y) * (y - cyl_y) < cyl_r2)
+        else if ((x - cyl_x) * (x - cyl_x) + (y - cyl_y) * (y - cyl_y) < r)
           collision[index] = LatticeCollisionEnum::BOUNCE_BACK_STATIC;
         else
           collision[index] = LatticeCollisionEnum::NO_COLLISION;
