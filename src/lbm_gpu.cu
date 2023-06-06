@@ -175,6 +175,51 @@ __global__ void gpu_get_output(LatticeNode *space, LatticeOutput *output,
   output[index] = {u, rho};
 }
 
+__global__ void gpu_stream_buffer(LatticeNode *space, LatticeNode *space_swap,
+                                  LatticeInfo space_data) {
+  KERNEL_ONE_ELEMENT_INIT
+
+  space_swap[index].f[0] = space[index].f[0];
+
+  size_t x_pos_plus = x == space_data.x_size - 1 ? 0 : x + 1;
+  size_t index_x_plus = get_index(space_data, x_pos_plus, y, z);
+  u_int8_t x_plus[] = LBM_STREAM_X_PLUS;
+  for (u_int8_t i = 0; i < (sizeof(x_plus) / sizeof(x_plus[0])); i++)
+    space_swap[index_x_plus].f[x_plus[i]] = space[index].f[x_plus[i]];
+
+  size_t x_pos_minus = x == 0 ? space_data.x_size - 1 : x - 1;
+  size_t index_x_minus = get_index(space_data, x_pos_minus, y, z);
+  u_int8_t x_minus[] = LBM_STREAM_X_MINUS;
+  for (u_int8_t i = 0; i < (sizeof(x_minus) / sizeof(x_minus[0])); i++)
+    space_swap[index_x_minus].f[x_minus[i]] = space[index].f[x_minus[i]];
+
+  size_t y_pos_plus = y == space_data.y_size - 1 ? 0 : y + 1;
+  size_t index_y_plus = get_index(space_data, x, y_pos_plus, z);
+  u_int8_t y_plus[] = LBM_STREAM_Y_PLUS;
+  for (u_int8_t i = 0; i < (sizeof(y_plus) / sizeof(y_plus[0])); i++)
+    space_swap[index_y_plus].f[y_plus[i]] = space[index].f[y_plus[i]];
+
+  size_t y_pos_minus = y == 0 ? space_data.y_size - 1 : y - 1;
+  size_t index_y_minus = get_index(space_data, x, y_pos_minus, z);
+  u_int8_t y_minus[] = LBM_STREAM_Y_MINUS;
+  for (u_int8_t i = 0; i < (sizeof(y_minus) / sizeof(y_minus[0])); i++)
+    space_swap[index_y_minus].f[y_minus[i]] = space[index].f[y_minus[i]];
+
+#ifdef D3Q27_VERSION
+  size_t z_pos_plus = z == space_data.z_size - 1 ? 0 : z + 1;
+  size_t index_z_plus = get_index(space_data, x, y, z_pos_plus);
+  u_int8_t z_plus[] = LBM_STREAM_Z_PLUS;
+  for (u_int8_t i = 0; i < (sizeof(z_plus) / sizeof(z_plus[0])); i++)
+    space_swap[index_z_plus].f[z_plus[i]] = space[index].f[z_plus[i]];
+
+  size_t z_pos_minus = z == 0 ? space_data.z_size - 1 : z - 1;
+  size_t index_z_minus = get_index(space_data, x, y, z_pos_minus);
+  u_int8_t z_minus[] = LBM_STREAM_Z_MINUS;
+  for (u_int8_t i = 0; i < (sizeof(z_minus) / sizeof(z_minus[0])); i++)
+    space_swap[index_z_minus].f[z_minus[i]] = space[index].f[z_minus[i]];
+#endif
+}
+
 __global__ void gpu_stream_x_plus(LatticeNode *space, LatticeInfo space_data) {
   size_t y = blockDim.y * blockIdx.y + threadIdx.y;
   size_t z = blockDim.z * blockIdx.z + threadIdx.z;
@@ -380,6 +425,10 @@ void cuda_wait_for_device() { gpuErrchk(cudaDeviceSynchronize()); }
 void lbm_space_init_device(LatticeSpace *space, LatticeCollision *collisions) {
   gpuErrchk(cudaMalloc(&space->device_data,
                        space->info.total_size * sizeof(LatticeNode)));
+#ifdef LBM_STREAM_BUFFERS
+  gpuErrchk(cudaMalloc(&space->device_data_swap,
+                       space->info.total_size * sizeof(LatticeNode)));
+#endif
 
   gpuErrchk(cudaMalloc(&space->device_output,
                        space->info.total_size * sizeof(LatticeOutput)));
@@ -458,6 +507,18 @@ void lbm_space_get_output(LatticeSpace *space) {
 }
 
 void lbm_space_stream(LatticeSpace *space) {
+#ifdef LBM_STREAM_BUFFERS
+  ComputeDim compute_dim = compute_dim_create(
+      space->info.x_size, space->info.y_size, space->info.z_size);
+
+  gpu_stream_buffer<<<compute_dim.gridSize, compute_dim.blockSize>>>(
+      space->device_data, space->device_data_swap, space->info);
+  gpuErrchk(cudaPeekAtLastError());
+  gpuErrchk(cudaDeviceSynchronize());
+  LatticeNode *temp = space->device_data_swap;
+  space->device_data_swap = space->device_data;
+  space->device_data = temp;
+#else
   ComputeDim plane_xy =
       compute_dim_create(space->info.x_size, space->info.y_size, 1);
   ComputeDim plane_xz =
@@ -495,6 +556,7 @@ void lbm_space_stream(LatticeSpace *space) {
       space->device_data, space->info);
   gpuErrchk(cudaPeekAtLastError());
   gpuErrchk(cudaDeviceSynchronize());
+#endif
 #endif
 }
 

@@ -1,6 +1,7 @@
 #ifndef LBM_TYPES_INCLUDE
 #define LBM_TYPES_INCLUDE
 
+#include "lbm_constants.h"
 #include <sys/types.h>
 
 enum LatticeCollisionEnum {
@@ -51,6 +52,9 @@ typedef struct {
 typedef struct {
   LatticeInfo info;
   LatticeNode *device_data;
+#ifdef LBM_STREAM_BUFFERS
+  LatticeNode *device_data_swap;
+#endif
   LatticeCollision *device_collision;
   LatticeOutput *device_output;
   LatticeOutput *host_output;

@@ -7,6 +7,10 @@
 #define SIMULATION_TAU 0.6f
 #define SIMULATION_DT_TAU (SIMULATION_DT / SIMULATION_TAU)
 
+// with this flag on, second buffer is used for streaming. Faster but more
+// memory consuming
+// #define LBM_STREAM_BUFFERS
+
 #define D3Q27_VERSION
 // #define D2Q9_VERSION
 
