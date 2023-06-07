@@ -17,8 +17,8 @@
 
 #define OUTPUT_WIDTH 800
 #define OUTPUT_HEIGHT 400
-#define OUTPUT_DEPTH 1
-#define OUTPUT_SLICE OUTPUT_DEPTH / 2
+#define OUTPUT_DEPTH 100
+#define OUTPUT_SLICE (OUTPUT_DEPTH / 2)
 
 typedef struct {
   LatticeOutput *lattice;
@@ -130,10 +130,7 @@ inline size_t index(size_t x, size_t y, size_t z) {
   return (z * OUTPUT_WIDTH * OUTPUT_HEIGHT) + (y * OUTPUT_WIDTH) + x;
 }
 
-int main() {
-
-  auto outputs = files_in_output(OUTPUT_DIR);
-
+void save_images(std::vector<std::string> &outputs) {
   u_int8_t **rgb_buffer =
       (u_int8_t **)malloc(OUTPUT_HEIGHT * sizeof(u_int8_t *));
   for (size_t y = 0; y < OUTPUT_HEIGHT; y++) {
@@ -158,7 +155,7 @@ int main() {
         auto &u = o.lattice[index(x, y, z)].u;
         float mag =
             std::sqrt(u.x * u.x + u.y * u.y + u.z * u.z) / std::sqrt(CS2);
-        float head = atan2(u.y, u.x);
+        // float head = atan2(u.y, u.x);
         // rgb color = hsv2rgb({head, 1.f, mag});
         rgb color = {mag, mag, mag};
 
@@ -171,6 +168,85 @@ int main() {
     create_rgb_image(filename.c_str(), rgb_buffer, OUTPUT_WIDTH, OUTPUT_HEIGHT);
     free(o.lattice);
   }
+}
+
+float reverse_float(const float inFloat) {
+  float retVal;
+  char *floatToConvert = (char *)&inFloat;
+  char *returnFloat = (char *)&retVal;
+
+  // swap the bytes into a temporary buffer
+  returnFloat[0] = floatToConvert[3];
+  returnFloat[1] = floatToConvert[2];
+  returnFloat[2] = floatToConvert[1];
+  returnFloat[3] = floatToConvert[0];
+
+  return retVal;
+}
+
+void save_as_vtk(std::string input, std::string output) {
+  const char *header1 = "# vtk DataFile Version 2.0\n"
+                        "speeds and density in sample\n"
+                        "BINARY\n"
+                        "DATASET STRUCTURED_POINTS\n"
+                        "DIMENSIONS 800 400 100\n"
+                        "ORIGIN 0 0 0\n"
+                        "SPACING 1 1 1\n"
+                        "POINT_DATA 32000000\n"
+                        "VECTORS velocities float\n";
+  const char *header2 = "SCALARS densities float 1\n"
+                        "LOOKUP_TABLE default\n";
+
+  LatticeOutputFile o = read_zip_file(input.c_str());
+  if (o.lattice == nullptr)
+    return;
+
+  std::ofstream file(output.c_str(), std::ios::binary);
+  if (file.is_open()) {
+    file.write(reinterpret_cast<const char *>(header1),
+               sizeof(char) * strlen(header1));
+    for (size_t z = 0; z < 100; z++) {
+      for (size_t y = 0; y < 400; y++) {
+        for (size_t x = 0; x < 800; x++) {
+          auto &u = o.lattice[index(x, y, z)].u;
+          // file << u.x << " " << u.y << " " << u.z << "\n";
+          float t = reverse_float(u.x);
+          file.write(reinterpret_cast<const char *>(&t), sizeof(float));
+          t = reverse_float(u.y);
+          file.write(reinterpret_cast<const char *>(&t), sizeof(float));
+          t = reverse_float(u.z);
+          file.write(reinterpret_cast<const char *>(&t), sizeof(float));
+        }
+      }
+    }
+
+    file.write(reinterpret_cast<const char *>(header2),
+               sizeof(char) * strlen(header2));
+    for (size_t z = 0; z < 100; z++) {
+      for (size_t y = 0; y < 400; y++) {
+        for (size_t x = 0; x < 800; x++) {
+          auto &rho = o.lattice[index(x, y, z)].rho;
+          // file << rho << "\n";
+          float t = reverse_float(rho);
+          file.write(reinterpret_cast<const char *>(&t), sizeof(rho));
+        }
+      }
+    }
+    file.close();
+    std::cout << "Binary data written successfully." << std::endl;
+  } else {
+    std::cerr << "Unable to open the file." << std::endl;
+  }
+
+  free(o.lattice);
+}
+
+int main() {
+
+  // auto outputs = files_in_output("./output");
+  // save_images(outputs);
+
+  save_as_vtk("./output/sample_35800.zip", "./out.vtk");
 
   return 0;
 }
