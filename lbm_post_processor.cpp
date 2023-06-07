@@ -15,9 +15,9 @@
 
 #define OUTPUT_DIR "./output"
 
-#define OUTPUT_WIDTH 800
-#define OUTPUT_HEIGHT 400
-#define OUTPUT_DEPTH 100
+#define OUTPUT_WIDTH 600
+#define OUTPUT_HEIGHT 200
+#define OUTPUT_DEPTH 200
 #define OUTPUT_SLICE (OUTPUT_DEPTH / 2)
 
 typedef struct {
@@ -189,10 +189,10 @@ void save_as_vtk(std::string input, std::string output) {
                         "speeds and density in sample\n"
                         "BINARY\n"
                         "DATASET STRUCTURED_POINTS\n"
-                        "DIMENSIONS 800 400 100\n"
+                        "DIMENSIONS 600 200 200\n"
                         "ORIGIN 0 0 0\n"
                         "SPACING 1 1 1\n"
-                        "POINT_DATA 32000000\n"
+                        "POINT_DATA 24000000\n"
                         "VECTORS velocities float\n";
   const char *header2 = "SCALARS densities float 1\n"
                         "LOOKUP_TABLE default\n";
@@ -205,11 +205,10 @@ void save_as_vtk(std::string input, std::string output) {
   if (file.is_open()) {
     file.write(reinterpret_cast<const char *>(header1),
                sizeof(char) * strlen(header1));
-    for (size_t z = 0; z < 100; z++) {
-      for (size_t y = 0; y < 400; y++) {
-        for (size_t x = 0; x < 800; x++) {
+    for (size_t z = 0; z < 200; z++) {
+      for (size_t y = 0; y < 200; y++) {
+        for (size_t x = 0; x < 600; x++) {
           auto &u = o.lattice[index(x, y, z)].u;
-          // file << u.x << " " << u.y << " " << u.z << "\n";
           float t = reverse_float(u.x);
           file.write(reinterpret_cast<const char *>(&t), sizeof(float));
           t = reverse_float(u.y);
@@ -222,11 +221,10 @@ void save_as_vtk(std::string input, std::string output) {
 
     file.write(reinterpret_cast<const char *>(header2),
                sizeof(char) * strlen(header2));
-    for (size_t z = 0; z < 100; z++) {
-      for (size_t y = 0; y < 400; y++) {
-        for (size_t x = 0; x < 800; x++) {
+    for (size_t z = 0; z < 200; z++) {
+      for (size_t y = 0; y < 200; y++) {
+        for (size_t x = 0; x < 600; x++) {
           auto &rho = o.lattice[index(x, y, z)].rho;
-          // file << rho << "\n";
           float t = reverse_float(rho);
           file.write(reinterpret_cast<const char *>(&t), sizeof(rho));
         }
@@ -243,10 +241,10 @@ void save_as_vtk(std::string input, std::string output) {
 
 int main() {
 
-  // auto outputs = files_in_output("./output");
-  // save_images(outputs);
+  auto outputs = files_in_output("./output");
+  save_images(outputs);
 
-  save_as_vtk("./output/sample_35800.zip", "./out.vtk");
+  // save_as_vtk("./output/sample_19200.zip", "./out.vtk");
 
   return 0;
 }
