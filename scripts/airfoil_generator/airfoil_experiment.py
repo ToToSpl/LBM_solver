@@ -82,13 +82,10 @@ def main():
     frame = np.flip(frame, axis=0)
     Image.fromarray(frame).save("out.png")
 
-    with open("out.txt", 'w') as f:
+    with open("out.bin", 'wb') as f:
         for y in range(frame.shape[0]):
             for x in range(frame.shape[1]):
-                if frame[y, x] == 255:
-                    f.write('1 ')
-                else:
-                    f.write('0 ')
+                f.write(frame[y, x])
 
 
 if __name__ == "__main__":
