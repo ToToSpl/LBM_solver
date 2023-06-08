@@ -1,9 +1,9 @@
 import numpy as np
 from PIL import Image
-IMAGE_X = 10_000
-IMAGE_Y = 7_500
+IMAGE_X = 6700
+IMAGE_Y = 5000
 AIRFOIL = "./naca4412.dat"
-AIRFOIL_LEN = 7_500
+AIRFOIL_LEN = 5000
 ANGLE_DEG = 15.0
 
 ACCURACY = 3
@@ -81,6 +81,14 @@ def main():
 
     frame = np.flip(frame, axis=0)
     Image.fromarray(frame).save("out.png")
+
+    with open("out.txt", 'w') as f:
+        for y in range(frame.shape[0]):
+            for x in range(frame.shape[1]):
+                if frame[y, x] == 255:
+                    f.write('1 ')
+                else:
+                    f.write('0 ')
 
 
 if __name__ == "__main__":
