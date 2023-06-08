@@ -15,9 +15,9 @@
 
 #define OUTPUT_DIR "./output"
 
-#define OUTPUT_WIDTH 600
-#define OUTPUT_HEIGHT 200
-#define OUTPUT_DEPTH 200
+#define OUTPUT_WIDTH 6000
+#define OUTPUT_HEIGHT 4000
+#define OUTPUT_DEPTH 1
 #define OUTPUT_SLICE (OUTPUT_DEPTH / 2)
 
 typedef struct {

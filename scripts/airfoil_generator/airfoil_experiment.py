@@ -1,9 +1,9 @@
 import numpy as np
 from PIL import Image
-IMAGE_X = 6700
-IMAGE_Y = 5000
+IMAGE_X = 6000
+IMAGE_Y = 4000
 AIRFOIL = "./naca4412.dat"
-AIRFOIL_LEN = 5000
+AIRFOIL_LEN = 4750
 ANGLE_DEG = 15.0
 
 ACCURACY = 3
