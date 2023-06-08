@@ -40,6 +40,9 @@ typedef struct {
 
 typedef struct {
   Vec3 u;
+#ifdef LBM_MOMENT_EXCHANGE
+  Vec3 m;
+#endif
   float rho;
 } LatticeOutput;
 

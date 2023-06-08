@@ -136,7 +136,6 @@ __global__ void gpu_boundary_condition(LatticeNode *space,
     return;
   }
 
-  // u_int8_t mirrors_i[] = LBM_COLLISION_MIRROR;
   Vec3 speeds[] = LBM_SPEED_VECTORS;
   float weights[] = LBM_SPEED_WEIGHTS;
 
@@ -150,6 +149,35 @@ __global__ void gpu_boundary_condition(LatticeNode *space,
                 (speeds[i].z * wall.u.z);
     node->f[i] = node_mirror.f[i] - (2.f * weights[i] * rho_b1 * (dot / CS2));
   }
+}
+
+__global__ void gpu_calc_momentum(LatticeNode *space,
+                                  LatticeCollision *collisions,
+                                  LatticeOutput *output,
+                                  LatticeInfo space_data) {
+#ifndef LBM_MOMENT_EXCHANGE
+  return;
+#else
+  KERNEL_ONE_ELEMENT_INIT
+  LatticeCollision col = collisions[index];
+
+  Vec3 m = {0.f, 0.f, 0.f};
+  if (col != LatticeCollisionEnum::BOUNCE_BACK_STATIC) {
+    output[index].m = m;
+    return;
+  }
+
+  LatticeNode *node = &space[index];
+  Vec3 spd_vecs[] = LBM_SPEED_VECTORS;
+
+  for (u_int8_t i = 0; i < LBM_SPEED_COUNTS; i++) {
+    m.x += node->f[i] * spd_vecs[i].x;
+    m.y += node->f[i] * spd_vecs[i].y;
+    m.z += node->f[i] * spd_vecs[i].z;
+  }
+
+  output[index].m = m;
+#endif
 }
 
 __global__ void gpu_get_output(LatticeNode *space, LatticeOutput *output,
@@ -440,6 +468,21 @@ void lbm_space_boundary_condition(LatticeSpace *space) {
       space->device_data, space->device_collision, space->info);
   gpuErrchk(cudaPeekAtLastError());
   gpuErrchk(cudaDeviceSynchronize());
+}
+
+void lbm_space_calc_momentum(LatticeSpace *space) {
+#ifndef LBM_MOMENT_EXCHANGE
+  return;
+#else
+  ComputeDim compute_dim = compute_dim_create(
+      space->info.x_size, space->info.y_size, space->info.z_size);
+
+  gpu_calc_momentum<<<compute_dim.gridSize, compute_dim.blockSize>>>(
+      space->device_data, space->device_collision, space->device_output,
+      space->info);
+  gpuErrchk(cudaPeekAtLastError());
+  gpuErrchk(cudaDeviceSynchronize());
+#endif
 }
 
 void lbm_space_get_output(LatticeSpace *space) {
