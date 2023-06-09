@@ -170,6 +170,38 @@ void save_images(std::vector<std::string> &outputs) {
   }
 }
 
+void print_coefs(std::vector<std::string> &outputs) {
+
+  std::cout << "NAME,CL,CD,CL/CD" << std::endl;
+
+  float cs = std::sqrt(1.f / 3.f);
+  size_t z = OUTPUT_SLICE;
+  for (size_t j = 0; j < outputs.size(); j++) {
+    size_t i = j * 100;
+    // if (i % 20 != 0)
+    //   continue;
+    auto &p = outputs[j];
+    if (p.find(".zip") != p.size() - 4)
+      continue;
+
+    LatticeOutputFile o = read_zip_file(p.c_str());
+    std::cout << p << ",";
+    float cd = 0.0f;
+    float cl = 0.0f;
+    for (size_t y = 0; y < OUTPUT_HEIGHT; y++) {
+      for (size_t x = 0; x < OUTPUT_WIDTH; x++) {
+        auto &u = o.lattice[index(x, y, z)].u;
+        cl += o.lattice[index(x, y, z)].m.y;
+        cd += o.lattice[index(x, y, z)].m.x;
+      }
+    }
+    cl = fabs(cl);
+    cd = fabs(cd);
+    std::cout << cl << "," << cd << "," << cl / cd << std::endl;
+    free(o.lattice);
+  }
+}
+
 float reverse_float(const float inFloat) {
   float retVal;
   char *floatToConvert = (char *)&inFloat;
@@ -189,14 +221,16 @@ void save_as_vtk(std::string input, std::string output) {
                         "speeds and density in sample\n"
                         "BINARY\n"
                         "DATASET STRUCTURED_POINTS\n"
-                        "DIMENSIONS 600 200 200\n"
+                        "DIMENSIONS 1200 600 1\n"
                         "ORIGIN 0 0 0\n"
                         "SPACING 1 1 1\n"
-                        "POINT_DATA 24000000\n"
+                        "POINT_DATA 720000\n"
                         "VECTORS velocities float\n";
   const char *header2 = "SCALARS densities float 1\n"
                         "LOOKUP_TABLE default\n";
-
+#ifdef LBM_MOMENT_EXCHANGE
+  const char *header3 = "VECTORS momentum float\n";
+#endif
   LatticeOutputFile o = read_zip_file(input.c_str());
   if (o.lattice == nullptr)
     return;
@@ -205,9 +239,9 @@ void save_as_vtk(std::string input, std::string output) {
   if (file.is_open()) {
     file.write(reinterpret_cast<const char *>(header1),
                sizeof(char) * strlen(header1));
-    for (size_t z = 0; z < 200; z++) {
-      for (size_t y = 0; y < 200; y++) {
-        for (size_t x = 0; x < 600; x++) {
+    for (size_t z = 0; z < OUTPUT_DEPTH; z++) {
+      for (size_t y = 0; y < OUTPUT_HEIGHT; y++) {
+        for (size_t x = 0; x < OUTPUT_WIDTH; x++) {
           auto &u = o.lattice[index(x, y, z)].u;
           float t = reverse_float(u.x);
           file.write(reinterpret_cast<const char *>(&t), sizeof(float));
@@ -221,15 +255,34 @@ void save_as_vtk(std::string input, std::string output) {
 
     file.write(reinterpret_cast<const char *>(header2),
                sizeof(char) * strlen(header2));
-    for (size_t z = 0; z < 200; z++) {
-      for (size_t y = 0; y < 200; y++) {
-        for (size_t x = 0; x < 600; x++) {
+    for (size_t z = 0; z < OUTPUT_DEPTH; z++) {
+      for (size_t y = 0; y < OUTPUT_HEIGHT; y++) {
+        for (size_t x = 0; x < OUTPUT_WIDTH; x++) {
           auto &rho = o.lattice[index(x, y, z)].rho;
           float t = reverse_float(rho);
           file.write(reinterpret_cast<const char *>(&t), sizeof(rho));
         }
       }
     }
+
+#ifdef LBM_MOMENT_EXCHANGE
+    file.write(reinterpret_cast<const char *>(header3),
+               sizeof(char) * strlen(header3));
+    for (size_t z = 0; z < OUTPUT_DEPTH; z++) {
+      for (size_t y = 0; y < OUTPUT_HEIGHT; y++) {
+        for (size_t x = 0; x < OUTPUT_WIDTH; x++) {
+          auto &m = o.lattice[index(x, y, z)].m;
+          float t = reverse_float(m.x);
+          file.write(reinterpret_cast<const char *>(&t), sizeof(float));
+          t = reverse_float(m.y);
+          file.write(reinterpret_cast<const char *>(&t), sizeof(float));
+          t = reverse_float(m.z);
+          file.write(reinterpret_cast<const char *>(&t), sizeof(float));
+        }
+      }
+    }
+#endif
+
     file.close();
     std::cout << "Binary data written successfully." << std::endl;
   } else {
@@ -242,9 +295,10 @@ void save_as_vtk(std::string input, std::string output) {
 int main() {
 
   auto outputs = files_in_output("./output");
-  save_images(outputs);
+  // save_images(outputs);
+  print_coefs(outputs);
 
-  // save_as_vtk("./output/sample_19200.zip", "./out.vtk");
+  // save_as_vtk("./output/sample_100000.zip", "./out.vtk");
 
   return 0;
 }
