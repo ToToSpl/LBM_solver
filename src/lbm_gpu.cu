@@ -170,7 +170,7 @@ __global__ void gpu_calc_momentum(LatticeNode *space,
   LatticeNode *node = &space[index];
   Vec3 spd_vecs[] = LBM_SPEED_VECTORS;
 
-  for (u_int8_t i = 0; i < LBM_SPEED_COUNTS; i++) {
+  for (u_int8_t i = 1; i < LBM_SPEED_COUNTS; i++) {
     m.x += node->f[i] * spd_vecs[i].x;
     m.y += node->f[i] * spd_vecs[i].y;
     m.z += node->f[i] * spd_vecs[i].z;
@@ -200,7 +200,8 @@ __global__ void gpu_get_output(LatticeNode *space, LatticeOutput *output,
   u.y /= rho;
   u.z /= rho;
 
-  output[index] = {u, rho};
+  output[index].u = u;
+  output[index].rho = rho;
 }
 
 __global__ void gpu_stream_x_plus(LatticeNode *space, LatticeInfo space_data) {
