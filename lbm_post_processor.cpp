@@ -112,8 +112,8 @@ void create_rgb_image(const char *filename, u_int8_t **buffer, int width,
 }
 
 bool string_sort(std::string &a, std::string &b) {
-  size_t num_a = std::stoll(a.substr(a.find("_") + 1, a.size()));
-  size_t num_b = std::stoll(b.substr(b.find("_") + 1, b.size()));
+  size_t num_a = std::stoll(a.substr(a.find_last_of("_") + 1, a.size()));
+  size_t num_b = std::stoll(b.substr(b.find_last_of("_") + 1, b.size()));
   return num_a < num_b;
 }
 
@@ -221,10 +221,10 @@ void save_as_vtk(std::string input, std::string output) {
                         "speeds and density in sample\n"
                         "BINARY\n"
                         "DATASET STRUCTURED_POINTS\n"
-                        "DIMENSIONS 1200 600 1\n"
+                        "DIMENSIONS 6000 4000 1\n"
                         "ORIGIN 0 0 0\n"
                         "SPACING 1 1 1\n"
-                        "POINT_DATA 720000\n"
+                        "POINT_DATA 24000000\n"
                         "VECTORS velocities float\n";
   const char *header2 = "SCALARS densities float 1\n"
                         "LOOKUP_TABLE default\n";
@@ -294,11 +294,11 @@ void save_as_vtk(std::string input, std::string output) {
 
 int main() {
 
-  auto outputs = files_in_output("./output");
+  auto outputs = files_in_output(OUTPUT_DIR);
   // save_images(outputs);
   print_coefs(outputs);
 
-  // save_as_vtk("./output/sample_100000.zip", "./out.vtk");
+  // save_as_vtk("./output/sample_300000.zip", "./out.vtk");
 
   return 0;
 }
